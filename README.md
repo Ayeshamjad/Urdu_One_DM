@@ -9,7 +9,7 @@
 </div>
 <br>
 <p align="center">
-  <img src="assets/js79ccvr33.png" style="width: 200px; height: 200px; margin: 0 auto;">
+  <!-- <img src="assets/js79ccvr33.png" style="width: 200px; height: 200px; margin: 0 auto;"> -->
 </p>
 <!-- <a href="https://github.com/Ucas-HaoranWei/GOT-OCR2.0/"><img src="https://img.shields.io/badge/Project-Page-Green"></a> -->
 
