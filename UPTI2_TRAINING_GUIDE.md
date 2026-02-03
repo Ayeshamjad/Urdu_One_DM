@@ -28,16 +28,14 @@ pip install -r requirements.txt
 
 This step organizes your UPTI2 dataset into the format expected by oneDM and limits it to 20,000 training samples.
 
+**SINGLE LINE COMMAND (copy this entire line):**
 ```bash
-cd /storage/1/saima/oneDM/Arabic-One-DM
+python prepare_upti2_dataset.py --image_base /storage/1/saima/images_upti2_2/images --gt_base /home/tukl/Documents/Saima/urdu_handwritten_generation/DiffusionPen/groundtruth_upti2/groundtruth --output_base /storage/1/saima/oneDM/upti2_raw --max_train 20000 --max_val 2000 --seed 42
+```
 
-python prepare_upti2_dataset.py \
-  --image_base /storage/1/saima/images_upti2_2/images \
-  --gt_base /home/tukl/Documents/Saima/urdu_handwritten_generation/DiffusionPen/groundtruth_upti2/groundtruth \
-  --output_base /storage/1/saima/oneDM/upti2_raw \
-  --max_train 20000 \
-  --max_val 2000 \
-  --seed 42
+**Or use the shell script:**
+```bash
+./run_prepare.sh
 ```
 
 **What this does:**
@@ -202,10 +200,18 @@ tail -f /storage/1/saima/oneDM/output_upti2/logs/upti2_training.log
 
 ### In `configs/UPTI2_urdu.yml`:
 
-- **IMS_PER_BATCH**: Batch size (reduce if out of memory)
-- **EPOCHS**: Number of training epochs (315 is recommended)
+- **IMS_PER_BATCH**: Batch size = 32 (reduce to 16 or 8 if out of memory)
+- **EPOCHS**: 200 (reduced from 315 for 20K subset)
+- **SNAPSHOT_ITERS**: 25 (saves model every 25 epochs)
+- **VALIDATE_ITERS**: 625 (~1 epoch, generates sample images)
 - **BASE_LR**: Learning rate (0.0001 is good default)
-- **NUM_THREADS**: Number of data loading threads (adjust based on CPU)
+- **NUM_THREADS**: 16 (data loading threads)
+
+### Space-Saving Features ✅
+
+- **Auto-cleanup**: Only keeps last 3 checkpoints (saves ~74GB of space!)
+- **Smart saving**: Checkpoints every 25 epochs instead of 5
+- **Total storage needed**: ~6GB instead of ~80GB
 
 ### In training command:
 
@@ -285,9 +291,18 @@ python -m torch.distributed.launch \
 
 ## Expected Training Time
 
-- **With 1 GPU (e.g., RTX 3090)**: ~3-5 days for 315 epochs
-- **With 4 GPUs**: ~1-2 days for 315 epochs
+With 200 epochs (updated from 315):
+- **With 1 GPU (e.g., RTX 3090)**: ~2-3 days for 200 epochs
+- **With 4 GPUs**: ~12-18 hours for 200 epochs
 - **Dataset size**: 20,000 samples
+
+## Storage Requirements
+
+- **Old config (315 epochs, save every 5)**: ~80GB (40 checkpoints)
+- **New config (200 epochs, auto-cleanup)**: ~6GB (only last 3 checkpoints kept) ✅
+- **Sample images**: ~100MB
+- **Logs**: ~50MB
+- **Total needed**: ~6.2GB
 
 ## Questions?
 
