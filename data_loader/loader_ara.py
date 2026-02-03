@@ -33,10 +33,11 @@ generate_type = {
 SHOW_HARAKAT = False  # or True if you want diacritics 
 
 # ---------------------------------------
-# Arabic / Unifont Setup
+# Arabic / Unifont Setup (Extended for Urdu)
 # ---------------------------------------
-# For an Arabic scenario:
-arabic_chars   = "ءأإآابتثجحخدذرزسشصضطظعغفقكلمنهويىئؤة"
+# For Arabic/Urdu scenario:
+# Includes standard Arabic + Urdu-specific characters: ٹ ڈ ڑ ں ے پ چ ژ ک گ ی ہ
+arabic_chars   = "ءأإآابتثجحخدذرزسشصضطظعغفقكلمنهويىئؤةٹڈڑںےپچژکگیہ"
 arabic_numbers = "٠١٢٣٤٥٦٧٨٩"
 english_numbers= "0123456789"
 punctuation    = "!\"#%&'()*+-./:<=>@[\\]^_`{|}~،؛؟ " 
@@ -133,10 +134,24 @@ forms_mapping = {
     'ء': {'isolated': 0x0621, 'initial': 0x0621, 'medial': 0x0621, 'final': 0x0621},
     'ؤ': {'isolated': 0x0624, 'initial': 0x0624, 'medial': 0x0624, 'final': 0xFE86},
     'ى': {'isolated': 0x0649, 'initial': 0x0649, 'medial': 0x0649, 'final': 0xFEF0},
-    'ئ': {'isolated': 0x0626, 'initial': 0xFE8B, 'medial': 0xFE8C, 'final': 0xFE8A}
+    'ئ': {'isolated': 0x0626, 'initial': 0xFE8B, 'medial': 0xFE8C, 'final': 0xFE8A},
+    # Urdu-specific characters
+    'ٹ': {'isolated': 0x0679, 'initial': 0xFB68, 'medial': 0xFB69, 'final': 0xFB67},
+    'ڈ': {'isolated': 0x0688, 'initial': 0x0688, 'medial': 0x0688, 'final': 0xFB89},
+    'ڑ': {'isolated': 0x0691, 'initial': 0x0691, 'medial': 0x0691, 'final': 0xFB8D},
+    'ں': {'isolated': 0x06BA, 'initial': 0x06BA, 'medial': 0x06BA, 'final': 0xFB9F},
+    'ے': {'isolated': 0x06D2, 'initial': 0x06D2, 'medial': 0x06D2, 'final': 0xFBAF},
+    'پ': {'isolated': 0x067E, 'initial': 0xFB58, 'medial': 0xFB59, 'final': 0xFB57},
+    'چ': {'isolated': 0x0686, 'initial': 0xFB7C, 'medial': 0xFB7D, 'final': 0xFB7B},
+    'ژ': {'isolated': 0x0698, 'initial': 0x0698, 'medial': 0x0698, 'final': 0xFB8B},
+    'ک': {'isolated': 0x06A9, 'initial': 0xFB90, 'medial': 0xFB91, 'final': 0xFB8F},
+    'گ': {'isolated': 0x06AF, 'initial': 0xFB94, 'medial': 0xFB95, 'final': 0xFB93},
+    'ی': {'isolated': 0x06CC, 'initial': 0xFBAA, 'medial': 0xFBAB, 'final': 0xFBA9},
+    'ہ': {'isolated': 0x06C1, 'initial': 0xFBA8, 'medial': 0xFBA9, 'final': 0xFBA7}
 }
 
-non_joining_letters = set("اأإآدذرزوؤىء")
+# Non-joining letters (Arabic + Urdu-specific: ڈ ڑ ژ ں ے)
+non_joining_letters = set("اأإآدذرزوؤىءڈڑژںے")
 
 # Helper to decide contextual form key (isolated/initial/medial/final)
 def _decide_form(word: str, idx: int) -> str:

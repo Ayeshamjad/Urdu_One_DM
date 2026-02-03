@@ -243,4 +243,17 @@ class Trainer:
         pbar.set_postfix(mse='%.6f' % (loss))
 
     def _save_checkpoint(self, epoch):
-        torch.save(self.model.module.state_dict(), os.path.join(self.save_model_dir, str(epoch)+'-'+"ckpt.pt"))
+        checkpoint_path = os.path.join(self.save_model_dir, str(epoch)+'-'+"ckpt.pt")
+        torch.save(self.model.module.state_dict(), checkpoint_path)
+
+        # Auto-delete old checkpoints to save space (keep only last 3)
+        all_checkpoints = sorted([f for f in os.listdir(self.save_model_dir) if f.endswith('-ckpt.pt')])
+        if len(all_checkpoints) > 3:
+            # Delete oldest checkpoints, keep only last 3
+            for old_ckpt in all_checkpoints[:-3]:
+                old_path = os.path.join(self.save_model_dir, old_ckpt)
+                try:
+                    os.remove(old_path)
+                    print(f"Deleted old checkpoint: {old_ckpt}")
+                except:
+                    pass

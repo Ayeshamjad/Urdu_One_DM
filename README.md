@@ -1,154 +1,125 @@
-# One Stroke, One Shot: Diffusing a New Era in Arabic Handwriting Generation
-_Hamza A. Abushahla, Ariel Justine Navarro Panopio, Sarah Elfattal, and Imran A. Zualkernan_
+<a href=""><img src="https://img.shields.io/badge/Pytorch-1.13-green"></a>
+<a href="https://github.com/dailenson/One-DM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue"></a>
+  
+<h2 align="center"><a href="">One-DM:One-Shot Diffusion Mimicker for Handwritten Text Generation</a></h2>
+<div align="center">
+  <a href="https://arxiv.org/abs/2409.04004">ArXiv</a> |
+  <a href="https://github.com/dailenson/One-DM/blob/main/assets/Poster__One_DM.pdf">Poster</a> |
+  <a href="https://www.youtube.com/watch?v=5LoQ4iuVeak&t=19s">Video</a> 
+</div>
+<br>
+<p align="center">
+  <img src="assets/js79ccvr33.png" style="width: 200px; height: 200px; margin: 0 auto;">
+</p>
+<!-- <a href="https://github.com/Ucas-HaoranWei/GOT-OCR2.0/"><img src="https://img.shields.io/badge/Project-Page-Green"></a> -->
 
-This repository contains code and resources for the paper: "[One Stroke, One Shot: Diffusing a New Era in Arabic Handwriting Generation](https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=4234)".
+<!-- <a href="https://github.com/Ucas-HaoranWei/GOT-OCR2.0/blob/main/assets/wechat.jpg"><img src="https://img.shields.io/badge/Wechat-blue"></a> 
+<a href="https://zhuanlan.zhihu.com/p/718163422"><img src="https://img.shields.io/badge/zhihu-red"></a>  -->
 
-## Introduction
-This project presents an adaptation/extention of the One-DM (One-shot Diffusion Mimicker)[^1][^2] originally developed for English, in addition to Chinese and Japanese to enable Arabic handwriting generation. We adapt the One-DM framework to address Arabic-specific challenges including cursive structure, contextual letter forms, special symbols such as the همزة (hamzah), and diacritical marks, known as حركات (harakat). In order to achieve that, we accomlished 3 stages: synthetic data pretraining, real-world dataset aggregation, and architectural adaptation. The One-DM model involved several pretrained blocks: ResNet-18 feature extractors, OCR/HTR model, and VAE (stable-diffusion-v1-5). So then, following their process/methodology we had to pre-train our ResNet-18 on a large synthetic dataset of Arabic word images, which we call $Khat^2$, we collected a large dataset of arabic words by combining 4 publicly available datasets (detailed below), and we also pretrain/fine-tune an OCR/HTR network on this combined dataset before using it as part of the overall architecture. In addition, we build our own custom GNU Unifont module (?) capable of generating glyphs of individual letters of the input word in their correct contextual forms (used to guide the content encoder) (also detailed below) this is also capable of generating letters with harakat. Finally, we train and evaluate our overall model (using all the pre-trained blocks) on its ability to generate Arabic handwriting in a writer-specific style from a single reference sample. 
+<!-- [Gang Dai](https://scholar.google.com/citations?user=J4naK0MAAAAJ&hl=en), Yifan Zhang, Quhui Ke, Qiangya Guo, Lingyu Kong, Yanming Xu,  [Zheng Ge](https://joker316701882.github.io/), Liang Zhao, [Jianjian Sun](https://scholar.google.com/citations?user=MVZrGkYAAAAJ&hl=en), [Yuang Peng](https://scholar.google.com.hk/citations?user=J0ko04IAAAAJ&hl=zh-CN&oi=ao), Chunrui Han, [Xiangyu Zhang](https://scholar.google.com/citations?user=yuB-cfoAAAAJ&hl=en) -->
 
-Our contributions can be summarized as follows:
-- We introduce a large-scale synthetic dataset of Arabic word images rendered in fonts that emulate various calligraphic styles, enabling pretraining of deep generative models.
-- We create the first large-scale Arabic handwriting gen eration benchmark by merging four publicly available datasets to en sure diversity in writers and vocabulary.
-- We adapt the One-DM diffusion framework to address Arabic-specific challenges including cursive structure, contextual letter forms, and diacritics.
-- We train and evaluate the first diffusion-based model capable of generating Arabic handwriting in a writer-specific style from a single reference sample.
+<!-- <p align="center">
+<img src="assets/got_logo.png" style="width: 200px" align=center>
+</p> -->
 
-## $Khat^2$ Dataset
-Inspired by the $Font^2$ dataset[^3][^4]—which was used to train the ResNet-18 backbones in One-DM[^1][^2] and VATr[^5]—we built a large-scale synthetic dataset of Arabic word images rendered in a wide variety of fonts, including many that mimic handwriting. Each font serves as a distinct style class, and the dataset is used to pretrain a ResNet-18 model for learning robust Arabic writing styles.
+## 🌟 Introduction
+- We propose a One-shot Diffusion Mimicker (One-DM) for stylized handwritten text generation, which only requires a single reference sample as style input, and imitates its writing style to generate handwritten text with arbitrary content.
+- Previous state-of-the-art methods struggle to accurately extract a user's handwriting style from a single sample due to their limited ability to learn styles. To address this issue, we introduce the high-frequency components of the reference sample to
+ enhance the extraction of handwriting style. The proposed style-enhanced module can effectively capture the writing style patterns and suppress the interference of background noise.
+- Extensive experiments on handwriting datasets in English, Chinese, and Japanese demonstrate that our approach with a single style reference even
+outperforms previous methods with 15x-more references.
+<div style="display: flex; flex-direction: column; align-items: center; ">
+<img src="assets/overview_v2.png" style="width: 100%;">
+</div>
+<p align="center" style="margin-bottom: 10px;">
+Overview of the proposed One-DM
+</p>
 
-**Full generation details, scripts, and download links are available in the** [Khat_Squared](https://github.com/7abushahla/Khat_Squared) **repository**
-
-
-[^1]: https://arxiv.org/abs/2409.04004
-[^2]: https://github.com/dailenson/One-DM
-[^3]: https://github.com/aimagelab/font_square
-[^4]: https://arxiv.org/abs/2304.01842
-[^5]: https://arxiv.org/abs/2303.15269 
-[^6]: https://arxiv.org/abs/2410.02179
-[^7]: https://zenodo.org/records/14165756 
-
-## Arabic GNU Unifont Glyph Mapping
-
-Our methodology builds on the One-DM approach by leveraging GNU Unifont as the foundational source for our glyph representations. Recognizing the context‐sensitive nature of Arabic, we generate each letter’s four typical contextual forms—isolated, initial, medial, and final—by employing a strategy that forces joining using a dummy letter (س). Each glyph is rendered on a 16×16 pixel canvas and subsequently converted into a binary NumPy array.
-
-To further enhance the accuracy of our context-sensitive rendering, we have incorporated a refined joining heuristic that dynamically determines the appropriate contextual form of each Arabic letter based on its neighboring characters. The key aspects of this heuristic are:
-
-- **Non-Joining Letters:**  
-  Certain Arabic letters—specifically "ا", "أ", "إ", "آ", "د", "ذ", "ر", "ز", and "و"—do not connect to the following letter. When these letters occur in the middle of a word, they are rendered using their final form if preceded by a joinable letter; otherwise, they appear in their isolated form.
-
-- **Joinable Letters:**  
-  For letters that can join on both sides, the heuristic evaluates the neighboring characters as follows:
-  - **Medial Form:** A letter is rendered in its medial form if it is both preceded and followed by joinable characters.
-  - **Initial Form:** If a letter is not preceded by a joinable character but is followed by one, it is rendered in its initial form.
-  - **Final Form:** If a letter is preceded by a joinable character but is not followed by one, it is rendered in its final form.
-  - **Isolated Form:** When neither neighboring character is joinable, the letter remains in its isolated form.
-
-Our glyph rendering function further enhances visual consistency by aligning each character to a common baseline using font metrics. This ensures that all characters within a word remain uniformly aligned, preventing issues such as certain letters (e.g., "ـسـ") appearing to float off the line.
-
-### Explanation of Key Components
-
-- **`arabic_reshaper`**  
-  This library applies the standard contextual reshaping rules to individual Arabic characters. It converts each letter into its correct form (isolated, initial, medial, or final) based on general joining rules, but it does not account for the dynamic structure of a full word.
-
-- **`bidi.algorithm.get_display`**  
-  The BiDi algorithm ensures that the reshaped Arabic text is correctly ordered for right-to-left display. It rearranges the characters so that they render naturally for Arabic reading.
-
-- **`shape_arabic_text` Function**  
-  Our custom `shape_arabic_text` function goes beyond the capabilities of `arabic_reshaper` by analyzing the surrounding characters in a word. It:
-  - Examines neighboring letters to decide whether a letter should be rendered in its initial, medial, final, or isolated form.
-  - Uses a joining heuristic that checks for non-joining letters to decide if a letter joins to the left, right, both, or neither.
-  - Reverses the order of glyph indices to ensure the final rendering adheres to Arabic’s right-to-left orientation.
-
-In addition to processing the basic Arabic letters, our pipeline expands to include their contextual variants along with Arabic and English numerals, punctuation, and special symbols. The final output is a pickle file that maps these contextual forms and additional glyphs, ready for integration with the provided One-DM code for accurate, context-aware text rendering.
+## 🌠 News
+- [2025/06/26] 🔥🔥🔥 [DiffBrush](https://github.com/dailenson/DiffBrush), a novel state-of-the-art approach for full-line text generation, is accepted to ICCV 2025.
+- [2024/10/24] We have provided a well-trained One-DM checkpoint on Google Drive and Baidu Drive :)
+- [2024/09/16] This work is reported by [Synced](https://mp.weixin.qq.com/s/1JdBsjf0hru7iSS7jln02Q) (机器之心).
+- [2024/09/07]🔥🔥🔥 We open-source the first version of One-DM that can generate handwritten words. (Later versions supporting Chinese and Japanese will be released soon.)
 
 
-## Training Datasets
-To train our model effectively, we required a dataset of Arabic handwritten words that included both ground truth annotations and writer information. Given the scarcity of large-scale, high-quality handwriting datasets in Arabic (in contrast to well-established English datasets such as IAM or CVL), we opted to merge three publicly available datasets: IFN/ENIT, AlexU-Word, and the words portion of the AHAWP (Arabic Handwritten Alphabets, Words, and Paragraphs per User) dataset. This combination increases writer diversity and lexical coverage, providing a more representative sample of Arabic handwriting styles and variations.
-
-### IFN/ENIT Dataset
-
-The IFN/ENIT dataset consists of 26,459 images of handwritten Arabic words representing 937 Tunisian town and village names. These names may comprise one or more Arabic words and occasionally include digits or diacritics, namely the shadda (ـّ), though not all writers include it in their handwriting. Data was collected from 411 different writers, with each word appearing at least three times. All images were cropped and binarized (black ink on a white background), providing clean input for handwriting recognition tasks.
-
-### AlexU-Word Dataset
-
-The AlexU-Word dataset, collected at the Faculty of Engineering, Alexandria University, contains 25,114 word images corresponding to 109 unique Arabic words. These samples were gathered from 907 writers. The selected words were designed to cover all positional variations of Arabic letters (initial, medial, final, and isolated) and were chosen to be short, simple, and free of diacritics. Each writer completed a one-page form consisting of 28 words. Four distinct form templates were used to cover the complete set of letter cases.
-
-Images were originally tightly cropped and binarized (white ink on a black background). For consistency with IFN/ENIT, we inverted all images during preprocessing. We also removed incorrectly cropped images and those containing misspelled or out-of-vocabulary words.
-
-### AHAWP Dataset (Words Portion)
-
-The AHAWP dataset includes handwritten samples of 65 Arabic character forms, 10 Arabic words, and 3 paragraphs, produced by 82 writers. Each participant wrote each word and character 10 times, yielding 8,144 word images. For this work, we utilized only the word portion of the dataset. As with the other datasets, the handwriting samples were collected using structured forms, where each cell was extracted and stored as an individual image.
-
-Because the original AHAWP images were not binarized or tightly cropped, we implemented an automated preprocessing pipeline. The pipeline applied Otsu’s thresholding (with inversion) to binarize each image, detected external contours, computed the union of bounding boxes, added padding, and performed cropping. The resulting images were then binarized once more to ensure uniform formatting.
-
-Additionally, word images with extensive scribbles or strike-throughs were discarded if the writing was obscured. In cases where the core word was still legible, we retained the image after manual correction. These steps ensured consistency across all datasets in terms of image quality and formatting.
-
-
-### IESK-ArDB Dataset
-
-Developed at the Institute for Electronics, Signal Processing and Communications (IESK) in Magdeburg, this dataset includes over 4,000 handwritten Arabic word images and 6,000 segmented character images. It covers a diverse vocabulary including nouns, verbs, city names, security terms, and bank-related expressions. For this work, we use only the word portion of the dataset. Although the full dataset was collected from 22 writers, the subset we obtained contains 2,750 word images with corresponding ground truth, comprising 364 unique words written by 18 different writers.
-
-#### Final Compiled Arabic Handwriting Dataset
-
-| Dataset                | Total Words | Unique Words | Writers |
-|------------------------|------------|-------------|---------|
-| ALEX-U Words           | 25,092     | 109         | 906     |
-| IFN/ENIT               | 26,459     | 937         | 411     |
-| AHAWP (Words Only)     | 8,137      | 10          | 82      |
-| IESK-ArDB              | 2,749      | 364         | 18      |
-| **Final Unified Dataset** | **62,437** | **1,412** | **1,417** |
-
-
-## Training & Testing
-- **Training on the Sutoor dataset**
-```Shell
-CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 train.py \
-    --feat_model model_zoo/resnet18_pretrained_2k.pth \
-    --stable_dif_path model_zoo/stable-diffusion-v1-5 \
-    --log Arabic
+## 🔨 Requirements
 ```
-- **Finetuning on the Sutoor dataset, introducing the HTR module**
+conda create -n One-DM python=3.8 -y
+conda activate One-DM
+# install all dependencies
+conda env create -f environment.yml
+```
+## ☀️ Datasets
+We provide English datasets in [Google Drive](https://drive.google.com/drive/folders/108TB-z2ytAZSIEzND94dyufybjpqVyn6) | [Baidu Netdisk](https://pan.baidu.com/s/14ESFRk0RaTr98eeLzcr_xw?pwd=4vsv) | [ShiZhi AI](https://wisemodel.cn/models/SCUT-MMPR/One-DM/blob/main/English_data.zip). Please download these datasets, uzip them and move the extracted files to /data.
+## 🐳 Model Zoo
+
+
+| Model|Google Drive|Baidu Netdisk|ShiZhi AI|
+|---------------|---------|-----------------------------------------|--------------|
+|Pretrained One-DM|[Google Drive](https://drive.google.com/drive/folders/10KOQ05HeN2kaR2_OCZNl9D_Kh1p8BDaa)|[Baidu Netdisk](https://pan.baidu.com/s/1VwckEw9TN734CirfWvZgiw?pwd=pfl8)|[ShiZhi AI](https://wisemodel.cn/models/SCUT-MMPR/One-DM/blob/main/One-DM-ckpt.pt)
+|Pretrained OCR model|[Google Drive](https://drive.google.com/drive/folders/10KOQ05HeN2kaR2_OCZNl9D_Kh1p8BDaa)|[Baidu Netdisk](https://pan.baidu.com/s/1VwckEw9TN734CirfWvZgiw?pwd=pfl8)|[ShiZhi AI](https://wisemodel.cn/models/SCUT-MMPR/One-DM/blob/main/vae_HTR138.pth)
+|Pretrained Resnet18|[Google Drive](https://drive.google.com/drive/folders/10KOQ05HeN2kaR2_OCZNl9D_Kh1p8BDaa)|[Baidu Netdisk](https://pan.baidu.com/s/1VwckEw9TN734CirfWvZgiw?pwd=pfl8)|[ShiZhi AI](https://wisemodel.cn/models/SCUT-MMPR/One-DM/blob/main/RN18_class_10400.pth)
+
+**Note**:
+Please download these weights, and move them to /model_zoo. (If you cannot access the pre-trained VAE model available on Hugging Face, please refer to the pinned issue for guidance.)
+## 🏋️ Training & Test
+- **training on English dataset**
 ```Shell
-CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 train_finetune.py \
-    --one_dm ./Saved/IAM64_scratch/Arabic-timestamp/model/epoch-ckpt \
-    --ocr_model ./models/ocr_best_state_recognition_OG.pth \
-    --stable_dif_path model_zoo/stable-diffusion-v1-5 --log Arabic
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train.py \
+    --feat_model model_zoo/RN18_class_10400.pth \
+    --log English
+```
+- **finetune on English dataset**
+```Shell
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_finetune.py \
+    --one_dm ./Saved/IAM64_scratch/English-timestamp/model/epoch-ckpt.pt \
+    --ocr_model ./model_zoo/vae_HTR138.pth --log English
  ```
 **Note**:
 Please modify ``timestamp`` and ``epoch`` according to your own path.
 
-- **Test genration using the test set**
+- **test on English dataset**
  ```Shell
-CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 test.py \
-   --one_dm ./Saved/IAM64_finetune/Arabic-timestamp/model/epoch-ckpt \
-   --generate_type oov_u --dir ./Generated/Arabic
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 test.py \
+    --one_dm ./Saved/IAM64_finetune/English-timestamp/model/epoch-ckpt.pt \
+    --generate_type oov_u --dir ./Generated/English
 ```
 **Note**:
 Please modify ``timestamp`` and ``epoch`` according to your own path.
+## 📺 Exhibition
+- **Comparisons with industrial image generation methods on handwritten text generation**
+<p align="center">
+<img src="assets/indus-English_v2.png" style="width: 90%" align=center>
+</p>
 
-- **Run evaluation script to obtain metrics**
- ```Shell
-python evaluate_generated.py --gen_dir Generated/Arabic/oov_u \
-   --ocr_model ./models/ocr_best_state_recognition_OG.pth
+- **Comparisons with industrial image generation methods on Chinese handwriting generation**
+<p align="center">
+<img src="assets/indus-Chinese.png" style="width: 90%" align=center>
+</p>
+
+- **English handwritten text generation**
+<p align="center">
+<img src="assets/One-DM_result.png" style="width: 100%" align=center>
+</p>
+<!-- ![online English](assets/One-DM_result.png) -->
+
+- **Chinese and Japanese handwriting generation**
+<p align="center">
+<img src="assets/casia_v4.png" style="width: 90%" align=center>
+</p>
+<!-- ![offline Chinese](assets/casia_v4.png) -->
+
+
+## ❤️ Citation
+If you find our work inspiring or use our codebase in your research, please cite our work:
 ```
-
-## Citation & Reaching out
-If you use our work for your own research, please cite us with the below: 
-
-```bibtex
-@Article{abushahla2025cognitive,
-AUTHOR = {Abushahla, Hamza A. and Panopio, Ariel J. N. Elfattal, Sarah and Zualkernan, Imran A.},
-TITLE = {One Stroke, One Shot: Diffusing a New Era in Arabic Handwriting Generation},
-JOURNAL = { },
-VOLUME = {},
-YEAR = {},
-NUMBER = {},
-ARTICLE-NUMBER = {},
-URL = {},
-ISSN = {},
-ABSTRACT = {},
-DOI = {}
+@inproceedings{one-dm2024,
+  title={One-Shot Diffusion Mimicker for Handwritten Text Generation},
+  author={Dai, Gang and Zhang, Yifan and Ke, Quhui and Guo, Qiangya and Huang, Shuangping},
+  booktitle={European Conference on Computer Vision},
+  year={2024}
 }
 ```
 
-You can also reach out through email to: 
-- Hamza Abushahla - b00090279@alumni.aus.edu
+## ⭐ StarGraph
+[![Star History Chart](https://api.star-history.com/svg?repos=dailenson/One-DM&type=Timeline)](https://star-history.com/#dailenson/One-DM&Timeline)
