@@ -22,7 +22,7 @@ TRAIN:
   SEED: 1001
   IMG_H: 64
   IMG_W: 64
-VAL:
+TEST:
   TYPE: val
   IMS_PER_BATCH: 32
   IMG_H: 64
