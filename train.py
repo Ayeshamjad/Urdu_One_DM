@@ -52,7 +52,7 @@ def main(opt):
     
     
     val_dataset = IAMDataset(
-         cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.VAL.TYPE)
+         cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TEST.TYPE)
     val_sampler = DistributedSampler(val_dataset)
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
