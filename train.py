@@ -39,7 +39,7 @@ def main(opt):
 
     """ set dataset"""
     train_dataset = IAMDataset(
-        cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TRAIN.TYPE)
+        cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TRAIN.TYPE, max_len=50)
     print('number of training images: ', len(train_dataset))
     train_sampler = DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(train_dataset,
@@ -52,7 +52,7 @@ def main(opt):
     
     
     val_dataset = IAMDataset(
-         cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TEST.TYPE)
+         cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TEST.TYPE, max_len=50)
     val_sampler = DistributedSampler(val_dataset)
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
