@@ -1,4 +1,4 @@
-<a href=""><img src="https://img.shields.io/badge/Pytorch-1.13-green"></a>
+
 <a href="https://github.com/dailenson/One-DM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue"></a>
   
 <h2 align="center"><a href="">One-DM:One-Shot Diffusion Mimicker for Handwritten Text Generation</a></h2>
