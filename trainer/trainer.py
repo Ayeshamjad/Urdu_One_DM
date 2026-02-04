@@ -169,8 +169,14 @@ class Trainer:
 
     @torch.no_grad()
     def _valid_iter(self, epoch):
-        print('loading test dataset, the number is', len(self.valid_data_loader))
+        if dist.get_rank() == 0:
+            print(f'  Loading validation dataset ({len(self.valid_data_loader)} batches)...')
         self.model.eval()
+
+        # Create separate folder for this epoch's samples
+        epoch_sample_dir = os.path.join(self.save_sample_dir, f"epoch_{epoch+1}")
+        os.makedirs(epoch_sample_dir, exist_ok=True)
+
         # use the first batch of dataloader in all validations for better visualization comparisons
         test_loader_iter = iter(self.valid_data_loader)
         test_data = next(test_loader_iter)
@@ -185,26 +191,37 @@ class Trainer:
         load_content = ContentData()
         # Define a fixed set of texts for visualization.
         texts = ["مرحبا", "شكرا", "أستاذ", "سلام", "وداعا"]
-        for text in texts:
+        if dist.get_rank() == 0:
+            print(f'  Generating images for {len(texts)} texts: {", ".join(texts)}')
+        for idx, text in enumerate(texts):
             rank = dist.get_rank()
             # Get content glyphs for the text and repeat to match the batch size.
             text_ref = load_content.get_content(text)
             text_ref = text_ref.to(self.device).repeat(style_ref.shape[0], 1, 1, 1)
             x = torch.randn((text_ref.shape[0], 4, style_ref.shape[2]//8, (text_ref.shape[1]*32)//8)).to(self.device)
             preds = self.diffusion.ddim_sample(self.model, self.vae, images.shape[0], x, style_ref, laplace_ref, text_ref)
-            out_path = os.path.join(self.save_sample_dir, f"epoch-{epoch}-{text}-process-{rank}.png")
+            out_path = os.path.join(epoch_sample_dir, f"{text}-process-{rank}.png")
             self._save_images(preds, out_path, writer_ids=writer_ids)
 
-            print(f"Saved generated outputs for text '{text}' at epoch {epoch}")
+            if dist.get_rank() == 0:
+                print(f"  [{idx+1}/{len(texts)}] Saved: {os.path.basename(out_path)}")
+
+        if dist.get_rank() == 0:
+            print(f"  ✓ All validation images saved to: {epoch_sample_dir}")
 
     def train(self):
         """start training iterations"""
+        start_time = time.time()
         for epoch in range(cfg.SOLVER.EPOCHS):
+            epoch_start_time = time.time()
             self.data_loader.sampler.set_epoch(epoch)
-            print(f"Epoch:{epoch} of process {dist.get_rank()}")
+            if dist.get_rank() == 0:
+                print(f"\n{'='*70}")
+                print(f"Epoch {epoch+1}/{cfg.SOLVER.EPOCHS} | Process {dist.get_rank()}")
+                print(f"{'='*70}")
             dist.barrier()
             if dist.get_rank() == 0:
-                pbar = tqdm(self.data_loader, leave=False)
+                pbar = tqdm(self.data_loader, leave=False, desc=f"Epoch {epoch+1}")
             else:
                 pbar = self.data_loader
 
@@ -221,23 +238,31 @@ class Trainer:
                         if (total_step+1) > cfg.TRAIN.VALIDATE_BEGIN  and (total_step+1) % cfg.TRAIN.VALIDATE_ITERS == 0:
                             self._valid_iter(total_step)
                         else:
-                            pass 
+                            pass
                 else:
                     self._train_iter(data, total_step, pbar)
 
+            epoch_time = time.time() - epoch_start_time
+
             if (epoch+1) > cfg.TRAIN.SNAPSHOT_BEGIN and (epoch+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 if dist.get_rank() == 0:
+                    print(f"\n[Checkpoint] Saving model at epoch {epoch+1}")
                     self._save_checkpoint(epoch)
                 else:
                     pass
             if self.valid_data_loader is not None:
                 if (epoch+1) > cfg.TRAIN.VALIDATE_BEGIN  and (epoch+1) % cfg.TRAIN.VALIDATE_ITERS == 0:
+                    if dist.get_rank() == 0:
+                        print(f"\n[Validation] Generating sample images for epoch {epoch+1}")
                     self._valid_iter(epoch)
             else:
                 pass
 
             if dist.get_rank() == 0:
                 pbar.close()
+                elapsed_time = time.time() - start_time
+                eta = elapsed_time / (epoch + 1) * (cfg.SOLVER.EPOCHS - epoch - 1)
+                print(f"\n[Epoch {epoch+1} Complete] Time: {epoch_time:.2f}s | Total: {elapsed_time/60:.2f}min | ETA: {eta/60:.2f}min")
 
     def _progress(self, loss, pbar):
         pbar.set_postfix(mse='%.6f' % (loss))
@@ -245,6 +270,7 @@ class Trainer:
     def _save_checkpoint(self, epoch):
         checkpoint_path = os.path.join(self.save_model_dir, str(epoch)+'-'+"ckpt.pt")
         torch.save(self.model.module.state_dict(), checkpoint_path)
+        print(f"  ✓ Checkpoint saved: {os.path.basename(checkpoint_path)}")
 
         # Auto-delete old checkpoints to save space (keep only last 3)
         all_checkpoints = sorted([f for f in os.listdir(self.save_model_dir) if f.endswith('-ckpt.pt')])
@@ -254,6 +280,6 @@ class Trainer:
                 old_path = os.path.join(self.save_model_dir, old_ckpt)
                 try:
                     os.remove(old_path)
-                    print(f"Deleted old checkpoint: {old_ckpt}")
+                    print(f"  Deleted old checkpoint: {old_ckpt}")
                 except:
                     pass
