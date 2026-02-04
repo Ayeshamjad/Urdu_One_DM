@@ -37,13 +37,19 @@ SHOW_HARAKAT = False  # or True if you want diacritics
 # ---------------------------------------
 # For Arabic/Urdu scenario:
 # Includes standard Arabic + Urdu-specific characters: ٹ ڈ ڑ ں ے پ چ ژ ک گ ی ہ
-arabic_chars   = "ءأإآابتثجحخدذرزسشصضطظعغفقكلمنهويىئؤةٹڈڑںےپچژکگیہ"
+arabic_chars   = "ءأإآابتثجحخدذرزسشصضطظعغفقكلمنهويىئؤةٹڈڑںےپچژکگیۂّٕ"
 arabic_numbers = "٠١٢٣٤٥٦٧٨٩"
 english_numbers= "0123456789"
-punctuation    = "!\"#%&'()*+-./:<=>@[\\]^_`{|}~،؛؟ " 
+english_letters= "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+# Include both English and Urdu/Arabic punctuation
+# ۔ (U+06D4) = Urdu full stop
+# ، (U+060C) = Arabic comma
+# ؛ (U+061B) = Arabic semicolon
+# ؟ (U+061F) = Arabic question mark
+punctuation    = "!\"#%&'()*+-./:<=>@[\\]^_`{|}~،؛؟۔ "
 
 # Combined letters (for content mapping)
-letters = arabic_chars + arabic_numbers + english_numbers + punctuation
+letters = arabic_chars + arabic_numbers + english_numbers + english_letters + punctuation
 
 style_len = 416 #target width in pixels for style images (around avg. width of images in the dataset)
 
@@ -478,8 +484,11 @@ class IAMDataset(Dataset):
             except Exception as e:
                 print(f'content error: {e}', item['content'])
 
-            # Target (same indices as content)
-            target[idx, :len(transcr[idx])] = torch.Tensor([self.letter2index[t] for t in transcr[idx]])
+            target[idx, :len(transcr[idx])] = torch.Tensor([
+                self.letter2index.get(t, self.tokens["PAD_TOKEN"])
+                for t in transcr[idx]
+            ])
+
             
             # Style/Laplace (same as English)
             try:
