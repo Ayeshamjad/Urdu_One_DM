@@ -8,15 +8,15 @@ MODEL:
   EMB_DIM: 512
 SOLVER:
   BASE_LR: 0.0001
-  EPOCHS: 200
-  WARMUP_ITERS: 15000
+  EPOCHS: 350
+  WARMUP_ITERS: 25000
   TYPE: AdamW
   GRAD_L2_CLIP: 5.0
 TRAIN:
   TYPE: train
-  IMS_PER_BATCH: 32
+  IMS_PER_BATCH: 64
   SNAPSHOT_BEGIN: 1
-  SNAPSHOT_ITERS: 25  # Save every 25 epochs (8 checkpoints total)
+  SNAPSHOT_ITERS: 50  # Save every 25 epochs (8 checkpoints total)
   VALIDATE_BEGIN: 1
   VALIDATE_ITERS: 1  # Validate and generate images every 1 epoch
   SEED: 1001
@@ -28,7 +28,7 @@ TEST:
   IMG_H: 64
   IMG_W: 64
 DATA_LOADER:
-  NUM_THREADS: 16
+  NUM_THREADS: 32
   IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
   STYLE_PATH: /storage/1/saima/oneDM/upti2_processed
   LAPLACE_PATH: /storage/1/saima/oneDM/upti2_processed_laplace
