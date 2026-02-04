@@ -18,7 +18,7 @@ TRAIN:
   SNAPSHOT_BEGIN: 1
   SNAPSHOT_ITERS: 50  # Save every 25 epochs (8 checkpoints total)
   VALIDATE_BEGIN: 1
-  VALIDATE_ITERS: 1  # Validate and generate images every 1 epoch
+  VALIDATE_ITERS: 5  # Validate and generate images every 1 epoch
   SEED: 1001
   IMG_H: 64
   IMG_W: 64
