@@ -173,10 +173,6 @@ class Trainer:
             print(f'  Loading validation dataset ({len(self.valid_data_loader)} batches)...')
         self.model.eval()
 
-        # Create separate folder for this epoch's samples
-        epoch_sample_dir = os.path.join(self.save_sample_dir, f"epoch_{epoch+1}")
-        os.makedirs(epoch_sample_dir, exist_ok=True)
-
         # use the first batch of dataloader in all validations for better visualization comparisons
         test_loader_iter = iter(self.valid_data_loader)
         test_data = next(test_loader_iter)
@@ -200,14 +196,15 @@ class Trainer:
             text_ref = text_ref.to(self.device).repeat(style_ref.shape[0], 1, 1, 1)
             x = torch.randn((text_ref.shape[0], 4, style_ref.shape[2]//8, (text_ref.shape[1]*32)//8)).to(self.device)
             preds = self.diffusion.ddim_sample(self.model, self.vae, images.shape[0], x, style_ref, laplace_ref, text_ref)
-            out_path = os.path.join(epoch_sample_dir, f"{text}-process-{rank}.png")
+            # Save all images in one folder with epoch number in filename
+            out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_{text}.png")
             self._save_images(preds, out_path, writer_ids=writer_ids)
 
             if dist.get_rank() == 0:
                 print(f"  [{idx+1}/{len(texts)}] Saved: {os.path.basename(out_path)}")
 
         if dist.get_rank() == 0:
-            print(f"  ✓ All validation images saved to: {epoch_sample_dir}")
+            print(f"  ✓ All validation images saved to: {self.save_sample_dir}")
 
     def train(self):
         """start training iterations"""
