@@ -196,14 +196,17 @@ class Trainer:
             print(f'  Generating images for {len(texts)} texts: {", ".join(texts)}')
         for idx, text in enumerate(texts):
             rank = dist.get_rank()
-            # Get content glyphs for the text and repeat to match the batch size.
+            # Get content glyphs for the text - generate only 1 image per sentence
             text_ref = load_content.get_content(text)
-            text_ref = text_ref.to(self.device).repeat(style_ref.shape[0], 1, 1, 1)
-            x = torch.randn((text_ref.shape[0], 4, style_ref.shape[2]//8, (text_ref.shape[1]*32)//8)).to(self.device)
-            preds = self.diffusion.ddim_sample(self.model, self.vae, images.shape[0], x, style_ref, laplace_ref, text_ref)
-            # Save all images in one folder with epoch number in filename
+            text_ref = text_ref.to(self.device).unsqueeze(0)  # Add batch dimension for single image
+            # Use only the first style reference for generation
+            single_style = style_ref[0:1]  # Take first style only
+            single_laplace = laplace_ref[0:1]  # Take first laplace only
+            x = torch.randn((1, 4, single_style.shape[2]//8, (text_ref.shape[1]*32)//8)).to(self.device)
+            preds = self.diffusion.ddim_sample(self.model, self.vae, 1, x, single_style, single_laplace, text_ref)
+            # Save single image (no grid needed)
             out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_{text}.png")
-            self._save_images(preds, out_path, writer_ids=writer_ids)
+            self._save_images(preds, out_path, writer_ids=None)
 
             if dist.get_rank() == 0:
                 print(f"  [{idx+1}/{len(texts)}] Saved: {os.path.basename(out_path)}")
