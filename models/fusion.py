@@ -123,7 +123,7 @@ class Mix_TR(nn.Module):
         low_nce_emb = nn.functional.normalize(low_nce_emb, p=2, dim=2)
 
         # content encoder
-        content = rearrange(content, 'n t h w ->(n t) 1 h w').contiguous()
+        content = rearrange(content, 'n c t h w ->(n t) c h w').contiguous()
         content = self.content_encoder(content)
         content = rearrange(content, '(n t) c h w ->t n (c h w)', n=style.shape[0]).contiguous() # n is batch size
         #content = content.permute(1, 0, 2).contiguous() # t n c
@@ -151,7 +151,7 @@ class Mix_TR(nn.Module):
         anchor_low_feature = anchor_low_feature * anchor_mask
 
         # content encoder
-        content = rearrange(content, 'n t h w ->(n t) 1 h w').contiguous()
+        content = rearrange(content, 'n c t h w ->(n t) c h w').contiguous()
         content = self.content_encoder(content)
         content = rearrange(content, '(n t) c h w ->t n (c h w)', n=style.shape[0]).contiguous() # n is batch size
         content = self.add_position1D(content)
