@@ -1,0 +1,42 @@
+MODEL:
+  STYLE_ENCODER_LAYERS: 3
+  NUM_IMGS: 15
+  IN_CHANNELS: 4
+  OUT_CHANNELS: 4
+  NUM_RES_BLOCKS: 1
+  NUM_HEADS: 4
+  EMB_DIM: 512
+SOLVER:
+  BASE_LR: 0.0001
+  EPOCHS: 350
+  WARMUP_ITERS: 25000
+  TYPE: AdamW
+  GRAD_L2_CLIP: 5.0
+TRAIN:
+  TYPE: train
+  IMS_PER_BATCH: 64
+  SNAPSHOT_BEGIN: 1
+  SNAPSHOT_ITERS: 50
+  VALIDATE_BEGIN: 1
+  VALIDATE_ITERS: 5
+  SEED: 1001
+  IMG_H: 64
+  IMG_W: 64
+TEST:
+  TYPE: val
+  IMS_PER_BATCH: 32
+  IMG_H: 64
+  IMG_W: 64
+DATA_LOADER:
+  NUM_THREADS: 32
+  # For UPTI dataset format
+  DATASET_FORMAT: upti
+  UPTI_IMAGES_BASE: /storage/1/saima/oneDM/images_upti2_2
+  UPTI_GT_BASE: /storage/1/saima/oneDM/groundtruth_upti2/groundtruth
+  UPTI_FONT: Pak Nastaleeq
+  UPTI_DEGRADATION: nodegradation
+  # These are kept for compatibility but not used in UPTI mode
+  IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
+  STYLE_PATH: /storage/1/saima/oneDM/upti2_processed
+  LAPLACE_PATH: /storage/1/saima/oneDM/upti2_processed_laplace
+OUTPUT_DIR: /storage/1/saima/oneDM/output_upti2_sentences

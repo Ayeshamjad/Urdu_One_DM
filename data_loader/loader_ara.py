@@ -251,22 +251,33 @@ def split_writer_id(wr_id):
 # IAMDataset for Training/Inferences
 # =======================================
 class IAMDataset(Dataset):
-    def __init__(self, 
+    def __init__(self,
                  image_path,
                  style_path,
                  laplace_path,
                  type,
                  content_type='unifont',
-                 max_len=10):
-        
+                 max_len=10,
+                 dataset_format='default',  # 'default' or 'upti'
+                 upti_config=None):  # {'images_base': path, 'gt_base': path, 'font': name, 'degradation': level}
+
         self.max_len = max_len
         self.style_len = style_len
         self.split     = type
-        
-        self.data_dict = self.load_data(text_path[type])
-        self.image_path   = os.path.join(image_path,   type)
-        self.style_root   = os.path.join(style_path,   type)
-        self.laplace_root = os.path.join(laplace_path, type)
+        self.dataset_format = dataset_format
+        self.upti_config = upti_config or {}
+
+        # Load data based on format
+        if dataset_format == 'upti':
+            self.data_dict = self.load_data_upti(type)
+            self.image_path = None  # Will use full paths from data_dict
+            self.style_root = None
+            self.laplace_root = None
+        else:
+            self.data_dict = self.load_data(text_path[type])
+            self.image_path   = os.path.join(image_path,   type)
+            self.style_root   = os.path.join(style_path,   type)
+            self.laplace_root = os.path.join(laplace_path, type)
         
         # these are used for the content (Arabic)
         self.letters = letters
@@ -325,30 +336,118 @@ class IAMDataset(Dataset):
 
         return full_dict
 
+    def load_data_upti(self, split):
+        """
+        Load data from UPTI dataset format:
+        Images: {images_base}/{split}/{id}/{font}/{degradation}/{id}.png
+        Ground truth: {gt_base}/{split}/{id}.txt
+
+        Returns dict: {idx: {'s_id': font_name, 'image': full_image_path, 'label': text}}
+        """
+        images_base = self.upti_config.get('images_base', '')
+        gt_base = self.upti_config.get('gt_base', '')
+        font = self.upti_config.get('font', 'Pak Nastaleeq')
+        degradation = self.upti_config.get('degradation', 'nodegradation')
+
+        gt_dir = os.path.join(gt_base, split)
+        img_base_dir = os.path.join(images_base, split)
+
+        if not os.path.exists(gt_dir):
+            raise RuntimeError(f"Ground truth directory not found: {gt_dir}")
+        if not os.path.exists(img_base_dir):
+            raise RuntimeError(f"Images directory not found: {img_base_dir}")
+
+        full_dict = {}
+        idx = 0
+
+        # Get all text files
+        gt_files = [f for f in os.listdir(gt_dir) if f.endswith('.txt')]
+
+        for gt_file in sorted(gt_files):
+            text_id = gt_file.replace('.txt', '')
+
+            # Read ground truth text
+            gt_path = os.path.join(gt_dir, gt_file)
+            with open(gt_path, 'r', encoding='utf-8') as f:
+                transcription = f.read().strip()
+
+            # Build image path
+            img_path = os.path.join(img_base_dir, text_id, font, degradation, f"{text_id}.png")
+
+            # Check if image exists
+            if not os.path.exists(img_path):
+                print(f"Warning: Image not found: {img_path}")
+                continue
+
+            # Strip diacritics if needed
+            if not SHOW_HARAKAT:
+                transcription = strip_harakat(transcription)
+
+            # Skip if too long
+            if effective_length(transcription) > self.max_len:
+                continue
+
+            # Store with font as "writer ID"
+            full_dict[idx] = {
+                's_id': font,  # Use font name as writer/style ID
+                'image': img_path,  # Full path to image
+                'label': transcription,
+                'text_id': text_id  # Original text ID for reference
+            }
+            idx += 1
+
+        print(f"Loaded {len(full_dict)} samples from UPTI {split} set")
+        return full_dict
+
     def get_style_ref(self, wr_id):
         """
         Match English loader approach: keep natural dimensions, pad to max width
         """
-        prefix, suffix = split_writer_id(wr_id)
-        files = os.listdir(self.style_root)
+        if self.dataset_format == 'upti':
+            # For UPTI: wr_id is the font name, pick random samples from data_dict with same font
+            candidates = [sample['image'] for sample in self.data_dict.values() if sample['s_id'] == wr_id]
 
-        # Collect all candidate images for the requested writer
-        if prefix == "iesk":            # special naming scheme
-            candidates = [f for f in files if f.endswith(f"_{suffix}.bmp")]
-        elif prefix == "ahawp":         # another special scheme
-            key = f"user{int(suffix):03d}"
-            candidates = [f for f in files if f.startswith(key + "_")]
-        else:                            # default  "suffix_"  or  "suffix-"
-            candidates = [f for f in files
-                          if f.startswith(suffix + "_") or f.startswith(suffix + "-")]
+            if len(candidates) < 1:
+                raise RuntimeError(f"No style images for font '{wr_id}'")
 
-        if len(candidates) < 2:
-            raise RuntimeError(f"No style images for writer '{wr_id}' in {self.style_root}")
+            # Pick 1 random image and use it twice
+            pick = random.sample(candidates, 1)
+            pick = [pick[0], pick[0]]  # Use the same image twice for consistency
 
-        # Randomly pick anchor & positive
-        pick = random.sample(candidates, 2)
-        style_images = [cv2.imread(os.path.join(self.style_root, fn), 0) for fn in pick]
-        laplace_images = [cv2.imread(os.path.join(self.laplace_root, fn), 0) for fn in pick]
+            # Read the images
+            style_images = [cv2.imread(fn, 0) for fn in pick]
+            # For UPTI, generate Laplace from the original images (no separate Laplace folder)
+            laplace_images = []
+            for img in style_images:
+                # Apply Laplace filter
+                laplace_img = cv2.Laplacian(img, cv2.CV_64F)
+                laplace_img = np.abs(laplace_img)
+                laplace_img = np.clip(laplace_img, 0, 255).astype(np.uint8)
+                laplace_images.append(laplace_img)
+
+        else:
+            # Original IAM/Arabic dataset handling
+            prefix, suffix = split_writer_id(wr_id)
+            files = os.listdir(self.style_root)
+
+            # Collect all candidate images for the requested writer
+            if prefix == "iesk":            # special naming scheme
+                candidates = [f for f in files if f.endswith(f"_{suffix}.bmp")]
+            elif prefix == "ahawp":         # another special scheme
+                key = f"user{int(suffix):03d}"
+                candidates = [f for f in files if f.startswith(key + "_")]
+            else:                            # default  "suffix_"  or  "suffix-"
+                candidates = [f for f in files
+                              if f.startswith(suffix + "_") or f.startswith(suffix + "-")]
+
+            if len(candidates) < 2:
+                raise RuntimeError(f"No style images for writer '{wr_id}' in {self.style_root}")
+
+            # Pick only 1 style image and use it for both anchor & positive
+            pick = random.sample(candidates, 1)
+            pick = [pick[0], pick[0]]  # Use the same image twice for consistency
+            style_images = [cv2.imread(os.path.join(self.style_root, fn), 0) for fn in pick]
+            laplace_images = [cv2.imread(os.path.join(self.laplace_root, fn), 0) for fn in pick]
 
         height = style_images[0].shape[0]
         assert height == style_images[1].shape[0], 'the heights of style images are not consistent'
@@ -410,13 +509,19 @@ class IAMDataset(Dataset):
         return ll
 
     def __getitem__(self, idx):
-        sample     = self.data_dict[self.indices[idx]]
-        img_path   = os.path.join(self.image_path, sample['image'])
-        image      = Image.open(img_path).convert('RGB')
-        image      = self.transforms(image)
+        sample = self.data_dict[self.indices[idx]]
+
+        # Handle image path based on dataset format
+        if self.dataset_format == 'upti':
+            img_path = sample['image']  # Already full path for UPTI
+        else:
+            img_path = os.path.join(self.image_path, sample['image'])
+
+        image = Image.open(img_path).convert('RGB')
+        image = self.transforms(image)
 
         style_arr, lap_arr = self.get_style_ref(sample['s_id'])
-        style   = torch.from_numpy(style_arr).float()
+        style = torch.from_numpy(style_arr).float()
         laplace = torch.from_numpy(lap_arr).float()
 
         return {

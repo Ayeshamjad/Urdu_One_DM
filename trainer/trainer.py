@@ -185,8 +185,14 @@ class Trainer:
         writer_ids = test_data.get('wid_str', None) or [str(w.item()) for w in test_data['wid']]
 
         load_content = ContentData()
-        # Define a fixed set of texts for visualization.
-        texts = ["مرحبا", "شكرا", "أستاذ", "سلام", "وداعا"]
+        # Define a fixed set of full sentence texts for visualization.
+        texts = [
+            "مرحبا بك في البرنامج",
+            "شكرا لك على المساعدة",
+            "السلام عليكم ورحمة الله",
+            "أهلا وسهلا بكم",
+            "وداعا إلى اللقاء"
+        ]
         if dist.get_rank() == 0:
             print(f'  Generating images for {len(texts)} texts: {", ".join(texts)}')
         for idx, text in enumerate(texts):

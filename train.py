@@ -38,8 +38,26 @@ def main(opt):
     
 
     """ set dataset"""
+    # Prepare UPTI config if using UPTI format
+    dataset_format = getattr(cfg.DATA_LOADER, 'DATASET_FORMAT', 'default')
+    upti_config = None
+    if dataset_format == 'upti':
+        upti_config = {
+            'images_base': cfg.DATA_LOADER.UPTI_IMAGES_BASE,
+            'gt_base': cfg.DATA_LOADER.UPTI_GT_BASE,
+            'font': cfg.DATA_LOADER.UPTI_FONT,
+            'degradation': cfg.DATA_LOADER.UPTI_DEGRADATION
+        }
+        print(f"Using UPTI dataset format:")
+        print(f"  Images: {upti_config['images_base']}")
+        print(f"  Ground truth: {upti_config['gt_base']}")
+        print(f"  Font: {upti_config['font']}")
+        print(f"  Degradation: {upti_config['degradation']}")
+
     train_dataset = IAMDataset(
-        cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TRAIN.TYPE, max_len=160)
+        cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH,
+        cfg.TRAIN.TYPE, max_len=160,
+        dataset_format=dataset_format, upti_config=upti_config)
     print('number of training images: ', len(train_dataset))
     train_sampler = DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(train_dataset,
@@ -49,10 +67,12 @@ def main(opt):
                                                num_workers=cfg.DATA_LOADER.NUM_THREADS,
                                                pin_memory=True,
                                                sampler=train_sampler)
-    
-    
+
+
     val_dataset = IAMDataset(
-         cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH, cfg.TEST.TYPE, max_len=160)
+         cfg.DATA_LOADER.IAMGE_PATH, cfg.DATA_LOADER.STYLE_PATH, cfg.DATA_LOADER.LAPLACE_PATH,
+         cfg.TEST.TYPE, max_len=160,
+         dataset_format=dataset_format, upti_config=upti_config)
     val_sampler = DistributedSampler(val_dataset)
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
