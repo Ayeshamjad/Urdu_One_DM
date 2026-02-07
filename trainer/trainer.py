@@ -185,13 +185,12 @@ class Trainer:
         writer_ids = test_data.get('wid_str', None) or [str(w.item()) for w in test_data['wid']]
 
         load_content = ContentData()
-        # Define a fixed set of full sentence texts for visualization.
+        # Define a fixed set of full Urdu sentence texts for visualization.
         texts = [
-            "مرحبا بك في البرنامج",
-            "شكرا لك على المساعدة",
-            "السلام عليكم ورحمة الله",
-            "أهلا وسهلا بكم",
-            "وداعا إلى اللقاء"
+            'مخالفت کےباوجود برصغیرکی ملت اسلامیہ دین اسلام ہے اور اسی نظریہ',
+            'بقاء اسی نظریہ حیات کے فروغ پر منحصر ہے۔',
+            'لیکن بدقسمتی سےپاکستان بننے کے بعد ہی اس کے اندر ایسے دشمن',
+            'میں مصروف ہوگیا بغیراسکا اہتمام کۓ کہ جسکا وہ پھل کھا رہا ہے'
         ]
         if dist.get_rank() == 0:
             print(f'  Generating images for {len(texts)} texts: {", ".join(texts)}')
