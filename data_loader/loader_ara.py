@@ -51,7 +51,7 @@ punctuation    = "!\"#%&'()*+-./:<=>@[\\]^_`{|}~،؛؟۔ "
 # Combined letters (for content mapping)
 letters = arabic_chars + arabic_numbers + english_numbers + english_letters + punctuation
 
-style_len = 416 #target width in pixels for style images (around avg. width of images in the dataset)
+style_len = 6656 #target width in pixels for style images (around avg. width of images in the dataset)
 
 # ---------------------------------------
 # GLOBAL writer-ID ↔ integer lookup (shared across splits)
@@ -650,10 +650,10 @@ class Random_StyleIAMDataset(IAMDataset):
         if s_img is None or l_img is None:
             raise RuntimeError(f"Error reading style or laplace image for file '{wr_id}' in {self.style_path}")
 
-        # Validate pre-processing: expect height exactly 64 px.
-        if s_img.shape[0] != 64:
+        # Validate pre-processing: expect height exactly 1024 px.
+        if s_img.shape[0] != 1024:
             raise RuntimeError(
-                f"Style image '{wr_id}' height is {s_img.shape[0]} (expected 64). "
+                f"Style image '{wr_id}' height is {s_img.shape[0]} (expected 1024). "
                 "Run the preprocessing script first."
             )
 
