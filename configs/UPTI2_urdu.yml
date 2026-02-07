@@ -20,13 +20,13 @@ TRAIN:
   VALIDATE_BEGIN: 1
   VALIDATE_ITERS: 5  # Validate and generate images every 1 epoch
   SEED: 1001
-  IMG_H: 64
-  IMG_W: 64
+  IMG_H: 1024
+  IMG_W: 1024
 TEST:
   TYPE: val
   IMS_PER_BATCH: 32
-  IMG_H: 64
-  IMG_W: 64
+  IMG_H: 1024
+  IMG_W: 1024
 DATA_LOADER:
   NUM_THREADS: 32
   IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
