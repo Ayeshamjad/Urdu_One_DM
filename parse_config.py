@@ -104,6 +104,13 @@ __C.DATA_LOADER.STYLE_PATH = ''
 
 __C.DATA_LOADER.LAPLACE_PATH = ''
 
+# UPTI dataset format options
+__C.DATA_LOADER.DATASET_FORMAT = 'default'
+__C.DATA_LOADER.UPTI_IMAGES_BASE = ''
+__C.DATA_LOADER.UPTI_GT_BASE = ''
+__C.DATA_LOADER.UPTI_FONT = ''
+__C.DATA_LOADER.UPTI_DEGRADATION = ''
+
 # ---------------------------------------------------------------------------- #
 # Inference ('test') options
 # ---------------------------------------------------------------------------- #
