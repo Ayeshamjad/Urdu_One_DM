@@ -14,21 +14,21 @@ SOLVER:
   GRAD_L2_CLIP: 5.0
 TRAIN:
   TYPE: train
-  IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 32
   SNAPSHOT_BEGIN: 1
   SNAPSHOT_ITERS: 50
   VALIDATE_BEGIN: 1
-  VALIDATE_ITERS: 1
+  VALIDATE_ITERS: 5
   SEED: 1001
-  IMG_H: 1024
-  IMG_W: 1024
+  IMG_H: 512
+  IMG_W: 512
 TEST:
   TYPE: val
-  IMS_PER_BATCH: 8
-  IMG_H: 1024
-  IMG_W: 1024
+  IMS_PER_BATCH: 16
+  IMG_H: 512
+  IMG_W: 512
 DATA_LOADER:
-  NUM_THREADS: 4
+  NUM_THREADS: 16
   IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
   STYLE_PATH: /storage/1/saima/oneDM/upti2_processed
   LAPLACE_PATH: /storage/1/saima/oneDM/upti2_processed_laplace

@@ -13,9 +13,9 @@ import argparse
 from tqdm import tqdm
 from multiprocessing import Pool
 
-TARGET_H = 1024
-MIN_W = 1024
-MAX_W = 2048
+TARGET_H = 512
+MIN_W = 512
+MAX_W = 5120
 ROUND_TO = 256
 
 
