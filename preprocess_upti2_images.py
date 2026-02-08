@@ -13,10 +13,10 @@ import argparse
 from tqdm import tqdm
 from multiprocessing import Pool
 
-TARGET_H = 512
-MIN_W = 512
+TARGET_H = 64
+MIN_W = 64
 MAX_W = 1024
-ROUND_TO = 256
+ROUND_TO = 64
 
 
 def resize_keep_h(img):
