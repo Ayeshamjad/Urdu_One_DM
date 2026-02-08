@@ -1,6 +1,6 @@
 MODEL:
   STYLE_ENCODER_LAYERS: 3
-  NUM_IMGS: 15
+  NUM_IMGS: 12
   IN_CHANNELS: 4
   OUT_CHANNELS: 4
   NUM_RES_BLOCKS: 1
@@ -14,21 +14,21 @@ SOLVER:
   GRAD_L2_CLIP: 5.0
 TRAIN:
   TYPE: train
-  IMS_PER_BATCH: 64
+  IMS_PER_BATCH: 16
   SNAPSHOT_BEGIN: 1
   SNAPSHOT_ITERS: 50
   VALIDATE_BEGIN: 1
   VALIDATE_ITERS: 5
   SEED: 1001
   IMG_H: 64
-  IMG_W: 64
+  IMG_W: 1024
 TEST:
   TYPE: val
-  IMS_PER_BATCH: 32
+  IMS_PER_BATCH: 8
   IMG_H: 64
-  IMG_W: 64
+  IMG_W: 1024
 DATA_LOADER:
-  NUM_THREADS: 0
+  NUM_THREADS: 8
   IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
   STYLE_PATH: /storage/1/saima/oneDM/upti2_processed
   LAPLACE_PATH: /storage/1/saima/oneDM/upti2_processed_laplace
