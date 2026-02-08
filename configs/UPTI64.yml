@@ -28,7 +28,7 @@ TEST:
   IMG_H: 1024
   IMG_W: 1024
 DATA_LOADER:
-  NUM_THREADS: 16
+  NUM_THREADS: 4
   IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
   STYLE_PATH: /storage/1/saima/oneDM/upti2_processed
   LAPLACE_PATH: /storage/1/saima/oneDM/upti2_processed_laplace
