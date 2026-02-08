@@ -14,8 +14,8 @@ from tqdm import tqdm
 from multiprocessing import Pool
 
 TARGET_H = 1024
-MIN_W = 2048
-MAX_W = 6656
+MIN_W = 1024
+MAX_W = 2048
 ROUND_TO = 256
 
 
