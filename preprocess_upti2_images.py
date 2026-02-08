@@ -15,7 +15,7 @@ from multiprocessing import Pool
 
 TARGET_H = 512
 MIN_W = 512
-MAX_W = 5120
+MAX_W = 1536
 ROUND_TO = 256
 
 
