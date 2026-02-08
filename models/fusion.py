@@ -35,7 +35,7 @@ class Mix_TR(nn.Module):
                                         return_intermediate=return_intermediate_dec)
         
         self.add_position1D = PositionalEncoding(dropout=0.1, dim=d_model) # add 1D position encoding
-        self.add_position2D = PositionalEncoding2D(dropout=0.1, d_model=d_model) # add 2D position encoding
+        self.add_position2D = PositionalEncoding2D(dropout=0.1, d_model=d_model, height=1024, width=1024) # add 2D position encoding with larger size
         self.high_pro_mlp = nn.Sequential(
             nn.Linear(512, 4096), nn.GELU(), nn.Linear(4096, 256))
         self.low_pro_mlp = nn.Sequential(
