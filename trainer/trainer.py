@@ -202,7 +202,9 @@ class Trainer:
             # Use only the first style reference for generation
             single_style = style_ref[0:1]  # Take first style only
             single_laplace = laplace_ref[0:1]  # Take first laplace only
-            x = torch.randn((1, 4, single_style.shape[2]//8, (text_ref.shape[1]*32)//8)).to(self.device)
+            # Use style image width for generation (matches training data dimensions)
+            latent_width = single_style.shape[3]//8  # Style image width in latent space
+            x = torch.randn((1, 4, single_style.shape[2]//8, latent_width)).to(self.device)
             preds = self.diffusion.ddim_sample(self.model, self.vae, 1, x, single_style, single_laplace, text_ref)
             # Save single image (no grid needed)
             out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_{text}.png")
