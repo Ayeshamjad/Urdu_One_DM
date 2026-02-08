@@ -29,13 +29,6 @@ TEST:
   IMG_W: 1024
 DATA_LOADER:
   NUM_THREADS: 32
-  # For UPTI dataset format
-  DATASET_FORMAT: upti
-  UPTI_IMAGES_BASE: /storage/1/saima/oneDM/images_upti2_2
-  UPTI_GT_BASE: /storage/1/saima/oneDM/groundtruth_upti2/groundtruth
-  UPTI_FONT: Pak Nastaleeq
-  UPTI_DEGRADATION: nodegradation
-  # These are kept for compatibility but not used in UPTI mode
   IAMGE_PATH: /storage/1/saima/oneDM/upti2_processed
   STYLE_PATH: /storage/1/saima/oneDM/upti2_processed
   LAPLACE_PATH: /storage/1/saima/oneDM/upti2_processed_laplace
