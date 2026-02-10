@@ -38,10 +38,10 @@ class Trainer:
             data['laplace'].to(self.device), \
             data['content'].to(self.device), \
             data['wid'].to(self.device)
-        
+
         # Extract string writer IDs for annotations
         wid_str = data.get('wid_str', None)
-        
+
         # vae encode
         images = self.vae.encode(images).latent_dist.sample()
         images = images * 0.18215
@@ -50,8 +50,8 @@ class Trainer:
         # forward
         t = self.diffusion.sample_timesteps(images.shape[0]).to(self.device)
         x_t, noise = self.diffusion.noise_images(images, t)
-        
-       
+
+
         predicted_noise, high_nce_emb, low_nce_emb = self.model(x_t, t, style_ref, laplace_ref, content_ref, tag='train')
         # calculate loss
         recon_loss = self.recon_criterion(predicted_noise, noise)
@@ -64,15 +64,30 @@ class Trainer:
         loss.backward()
         self.optimizer.step()
 
+        # Store loss values for return
+        loss_values = {
+            'recon': recon_loss.item(),
+            'high_nce': high_nce_loss.item(),
+            'low_nce': low_nce_loss.item(),
+            'total': loss.item()
+        }
+
         if dist.get_rank() == 0:
             # log file
             loss_dict = {"reconstruct_loss": recon_loss.item(), "high_nce_loss": high_nce_loss.item(),
                          "low_nce_loss": low_nce_loss.item()}
             self.tb_summary.add_scalars("loss", loss_dict, step)
+
+            # Print losses to terminal every 10 steps
+            if step % 10 == 0:
+                print(f"[Step {step}] recon: {recon_loss.item():.4f} | high_nce: {high_nce_loss.item():.4f} | low_nce: {low_nce_loss.item():.4f} | total: {loss.item():.4f}")
+
             self._progress(recon_loss.item(), pbar)
 
         del data, loss
         torch.cuda.empty_cache()
+
+        return loss_values
 
     def _finetune_iter(self, data, step, pbar):
         self.model.train()
@@ -125,10 +140,9 @@ class Trainer:
                          "ctc_loss": ctc_loss.item()}
             self.tb_summary.add_scalars("loss", loss_dict, step)
 
-            # --- Extra debugging output ---
-            # Print CTC loss to stdout so we can monitor for explosion.
-            if step % 10 == 0:  # reduce spam – adjust frequency as needed
-                print(f"[Finetune] Step {step} | CTC loss: {ctc_loss.item():.4f}")
+            # Print all losses to terminal every 10 steps
+            if step % 10 == 0:
+                print(f"[Finetune Step {step}] recon: {recon_loss.item():.4f} | high_nce: {high_nce_loss.item():.4f} | low_nce: {low_nce_loss.item():.4f} | ctc: {ctc_loss.item():.4f} | total: {loss.item():.4f}")
 
             self._progress(recon_loss.item(), pbar)
 
@@ -222,6 +236,10 @@ class Trainer:
         for epoch in range(cfg.SOLVER.EPOCHS):
             epoch_start_time = time.time()
             self.data_loader.sampler.set_epoch(epoch)
+
+            # Track losses for epoch summary
+            epoch_losses = {'recon': [], 'high_nce': [], 'low_nce': [], 'total': []}
+
             if dist.get_rank() == 0:
                 print(f"\n{'='*70}")
                 print(f"Epoch {epoch+1}/{cfg.SOLVER.EPOCHS} | Process {dist.get_rank()}")
@@ -247,7 +265,12 @@ class Trainer:
                         else:
                             pass
                 else:
-                    self._train_iter(data, total_step, pbar)
+                    loss_vals = self._train_iter(data, total_step, pbar)
+                    if dist.get_rank() == 0:
+                        epoch_losses['recon'].append(loss_vals['recon'])
+                        epoch_losses['high_nce'].append(loss_vals['high_nce'])
+                        epoch_losses['low_nce'].append(loss_vals['low_nce'])
+                        epoch_losses['total'].append(loss_vals['total'])
 
             epoch_time = time.time() - epoch_start_time
 
@@ -267,9 +290,19 @@ class Trainer:
 
             if dist.get_rank() == 0:
                 pbar.close()
+
+                # Print epoch summary with average losses
+                if len(epoch_losses['total']) > 0:
+                    avg_recon = sum(epoch_losses['recon']) / len(epoch_losses['recon'])
+                    avg_high = sum(epoch_losses['high_nce']) / len(epoch_losses['high_nce'])
+                    avg_low = sum(epoch_losses['low_nce']) / len(epoch_losses['low_nce'])
+                    avg_total = sum(epoch_losses['total']) / len(epoch_losses['total'])
+                    print(f"\n[Epoch {epoch+1} Summary]")
+                    print(f"  Avg Losses - recon: {avg_recon:.4f} | high_nce: {avg_high:.4f} | low_nce: {avg_low:.4f} | total: {avg_total:.4f}")
+
                 elapsed_time = time.time() - start_time
                 eta = elapsed_time / (epoch + 1) * (cfg.SOLVER.EPOCHS - epoch - 1)
-                print(f"\n[Epoch {epoch+1} Complete] Time: {epoch_time:.2f}s | Total: {elapsed_time/60:.2f}min | ETA: {eta/60:.2f}min")
+                print(f"  Time: {epoch_time:.2f}s | Total: {elapsed_time/60:.2f}min | ETA: {eta/60:.2f}min")
 
     def _progress(self, loss, pbar):
         pbar.set_postfix(mse='%.6f' % (loss))
