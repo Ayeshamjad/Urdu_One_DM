@@ -76,6 +76,10 @@ def collect_upti2_samples(image_base, gt_base, split='train', max_samples=20000)
 
                 degradation = deg_dir.name
 
+                # ONLY use nodegradation images (skip high/low/medium)
+                if degradation != 'nodegradation':
+                    continue
+
                 # Look for the image file
                 img_file = deg_dir / f"{img_number}.png"
 

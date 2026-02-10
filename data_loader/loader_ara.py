@@ -708,18 +708,9 @@ class ContentData(IAMDataset):
         # letters used for fallback
         self.letters = letters
 
-        # Build extended letter2index that includes contextual forms
-        self.letter2index = {}
-        for i, char in enumerate(letters):
-            if char in forms_mapping:
-                # For Arabic letters, map all forms to consecutive indices
-                for form_type in ['isolated', 'initial', 'medial', 'final']:
-                    code_point = forms_mapping[char][form_type]
-                    self.letter2index[chr(code_point)] = i  # All forms map to base char index
-            else:
-                # For non-Arabic chars, just map the basic form
-                self.letter2index[char] = i
-        
+        # Build letter2index mapping BASE characters to indices (for shape_arabic_text)
+        self.letter2index = {label: n for n, label in enumerate(self.letters)}
+
         # Load symbols and build content tensor (also stores self.symbols)
         self.con_symbols = self.get_symbols(content_type)
 
