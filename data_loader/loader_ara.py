@@ -436,6 +436,9 @@ class IAMDataset(Dataset):
             elif prefix == "ahawp":         # another special scheme
                 key = f"user{int(suffix):03d}"
                 candidates = [f for f in files if f.startswith(key + "_")]
+            elif suffix == "":               # UPTI-style: writer_id has no dash (e.g., "FontName_nodegradation")
+                # For UPTI, filenames start with full writer_id (e.g., "FontName_nodegradation_12345.png")
+                candidates = [f for f in files if f.startswith(wr_id + "_")]
             else:                            # default  "suffix_"  or  "suffix-"
                 candidates = [f for f in files
                               if f.startswith(suffix + "_") or f.startswith(suffix + "-")]
