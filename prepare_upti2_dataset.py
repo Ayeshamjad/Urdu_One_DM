@@ -84,14 +84,15 @@ def collect_upti2_samples(image_base, gt_base, split='train', max_samples=20000)
                 img_file = deg_dir / f"{img_number}.png"
 
                 if img_file.exists():
-                    # Create a unique writer ID based on font and degradation
-                    # Format: font_deg_imgnum (e.g., AlviNastaleeq_nodeg_1)
+                    # Create writer ID based on font and degradation (NOT including img_number)
+                    # This allows multiple images to share the same writer ID for style reference sampling
+                    # Format: font_deg (e.g., AlviNastaleeq_nodegradation)
                     font_clean = font_name.replace(' ', '')
                     deg_clean = degradation.replace(' ', '')
-                    writer_id = f"{font_clean}_{deg_clean}_{img_number}"
+                    writer_id = f"{font_clean}_{deg_clean}"
 
-                    # Create image name
-                    image_name = f"{writer_id}.png"
+                    # Create unique image name using img_number
+                    image_name = f"{font_clean}_{deg_clean}_{img_number}.png"
 
                     samples.append({
                         'writer_id': writer_id,
