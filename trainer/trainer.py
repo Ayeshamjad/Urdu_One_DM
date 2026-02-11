@@ -12,7 +12,7 @@ import torch.distributed as dist
 import torch.nn.functional as F
 
 class Trainer:
-    def __init__(self, diffusion, unet, vae, criterion, optimizer, data_loader, 
+    def __init__(self, diffusion, unet, vae, criterion, optimizer, data_loader,
                  logs, valid_data_loader=None, device=None, ocr_model=None, ctc_loss=None):
         self.model = unet
         self.diffusion = diffusion
@@ -28,6 +28,10 @@ class Trainer:
         self.ocr_model = ocr_model
         self.ctc_criterion = ctc_loss
         self.device = device
+
+        # Track best model based on validation loss
+        self.best_loss = float('inf')
+        self.best_epoch = -1
       
     def _train_iter(self, data, step, pbar):
         self.model.train()
@@ -199,15 +203,13 @@ class Trainer:
         writer_ids = test_data.get('wid_str', None) or [str(w.item()) for w in test_data['wid']]
 
         load_content = ContentData()
-        # Define a fixed set of full Urdu sentence texts for visualization.
+        # Define a fixed set of full Urdu sentence texts for validation
         texts = [
-            'مخالفت کےباوجود برصغیرکی ملت اسلامیہ دین اسلام ہے اور اسی نظریہ',
             'بقاء اسی نظریہ حیات کے فروغ پر منحصر ہے۔',
-            'لیکن بدقسمتی سےپاکستان بننے کے بعد ہی اس کے اندر ایسے دشمن',
-            'میں مصروف ہوگیا بغیراسکا اہتمام کۓ کہ جسکا وہ پھل کھا رہا ہے'
+            'لیکن بدقسمتی سےپاکستان بننے کے بعد ہی اس کے اندر ایسے دشمن'
         ]
         if dist.get_rank() == 0:
-            print(f'  Generating images for {len(texts)} texts: {", ".join(texts)}')
+            print(f'  Generating images for {len(texts)} texts')
         for idx, text in enumerate(texts):
             rank = dist.get_rank()
             # Get content glyphs for the text - generate only 1 image per sentence
@@ -216,12 +218,18 @@ class Trainer:
             # Use only the first style reference for generation
             single_style = style_ref[0:1]  # Take first style only
             single_laplace = laplace_ref[0:1]  # Take first laplace only
-            # Use style image width for generation (matches training data dimensions)
-            latent_width = single_style.shape[3]//8  # Style image width in latent space
+
+            # Calculate width based on text length to avoid cutoff
+            # Each character needs ~16 pixels in latent space, with some padding
+            text_length = len(text)
+            estimated_width = min(text_length * 2 + 4, 128)  # Cap at 128 (1024px in image space)
+            latent_width = estimated_width
+
             x = torch.randn((1, 4, single_style.shape[2]//8, latent_width)).to(self.device)
             preds = self.diffusion.ddim_sample(self.model, self.vae, 1, x, single_style, single_laplace, text_ref)
             # Save single image (no grid needed)
-            out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_{text}.png")
+            # Use index instead of text in filename to avoid Urdu encoding issues
+            out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_val{idx+1}.png")
             self._save_images(preds, out_path, writer_ids=None)
 
             if dist.get_rank() == 0:
@@ -274,10 +282,15 @@ class Trainer:
 
             epoch_time = time.time() - epoch_start_time
 
+            # Calculate average loss for this epoch
+            avg_total_loss = None
+            if dist.get_rank() == 0 and len(epoch_losses['total']) > 0:
+                avg_total_loss = sum(epoch_losses['total']) / len(epoch_losses['total'])
+
             if (epoch+1) > cfg.TRAIN.SNAPSHOT_BEGIN and (epoch+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 if dist.get_rank() == 0:
                     print(f"\n[Checkpoint] Saving model at epoch {epoch+1}")
-                    self._save_checkpoint(epoch)
+                    self._save_checkpoint(epoch, avg_total_loss)
                 else:
                     pass
             if self.valid_data_loader is not None:
@@ -307,10 +320,18 @@ class Trainer:
     def _progress(self, loss, pbar):
         pbar.set_postfix(mse='%.6f' % (loss))
 
-    def _save_checkpoint(self, epoch):
+    def _save_checkpoint(self, epoch, avg_loss=None):
         checkpoint_path = os.path.join(self.save_model_dir, str(epoch)+'-'+"ckpt.pt")
         torch.save(self.model.module.state_dict(), checkpoint_path)
         print(f"  ✓ Checkpoint saved: {os.path.basename(checkpoint_path)}")
+
+        # Save best model if this is the best epoch so far
+        if avg_loss is not None and avg_loss < self.best_loss:
+            self.best_loss = avg_loss
+            self.best_epoch = epoch
+            best_path = os.path.join(self.save_model_dir, "best_model.pt")
+            torch.save(self.model.module.state_dict(), best_path)
+            print(f"  ✓ Best model saved! (epoch {epoch+1}, loss: {avg_loss:.4f})")
 
         # Auto-delete old checkpoints to save space (keep only last 3)
         all_checkpoints = sorted([f for f in os.listdir(self.save_model_dir) if f.endswith('-ckpt.pt')])
