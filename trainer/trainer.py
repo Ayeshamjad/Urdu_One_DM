@@ -203,10 +203,15 @@ class Trainer:
         writer_ids = test_data.get('wid_str', None) or [str(w.item()) for w in test_data['wid']]
 
         load_content = ContentData()
-        # Define a fixed set of full Urdu sentence texts for validation
+        # Define a fixed set of Urdu words for validation (from dataset vocabulary)
         texts = [
-            'بقاء اسی نظریہ حیات کے فروغ پر منحصر ہے۔',
-            'لیکن بدقسمتی سےپاکستان بننے کے بعد ہی اس کے اندر ایسے دشمن'
+            'جمہویریہ',    # Republic
+            'تابوت',       # Coffin
+            'بحری',        # Naval
+            'سیارچہ',      # Asteroid
+            'نگہداشت',     # Care
+            'اشعار',       # Poems
+            'تحصیل'        # District
         ]
         if dist.get_rank() == 0:
             print(f'  Generating images for {len(texts)} texts')

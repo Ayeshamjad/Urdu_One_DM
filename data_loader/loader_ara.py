@@ -258,7 +258,7 @@ class IAMDataset(Dataset):
                  type,
                  content_type='unifont',
                  max_len=10,
-                 dataset_format='default',  # 'default' or 'upti'
+                 dataset_format='default',  # 'default', 'upti', or 'word'
                  upti_config=None):  # {'images_base': path, 'gt_base': path, 'font': name, 'degradation': level}
 
         self.max_len = max_len
@@ -273,6 +273,11 @@ class IAMDataset(Dataset):
             self.image_path = None  # Will use full paths from data_dict
             self.style_root = None
             self.laplace_root = None
+        elif dataset_format == 'word':
+            self.data_dict = self.load_data_word(image_path, type)
+            self.image_path = os.path.join(image_path, type, 'images')
+            self.style_root = os.path.join(style_path, type, 'images')
+            self.laplace_root = os.path.join(laplace_path, type, 'laplace')
         else:
             self.data_dict = self.load_data(text_path[type])
             self.image_path   = os.path.join(image_path,   type)
@@ -399,11 +404,114 @@ class IAMDataset(Dataset):
         print(f"Loaded {len(full_dict)} samples from UPTI {split} set")
         return full_dict
 
+    def load_data_word(self, base_path, split):
+        """
+        Load data from word-level dataset format:
+        Structure:
+          {base_path}/{split}/images/*.jpg
+          {base_path}/{split}/{split}_gt.txt
+
+        GT file format: images/1.jpg\tword
+
+        Returns dict: {idx: {'s_id': 'word_writer', 'image': filename, 'label': text}}
+        Note: For word-level data, we use all images as both training samples and style references
+        """
+        gt_file = os.path.join(base_path, split, f'{split}_gt.txt')
+        img_dir = os.path.join(base_path, split, 'images')
+
+        if not os.path.exists(gt_file):
+            raise RuntimeError(f"Ground truth file not found: {gt_file}")
+        if not os.path.exists(img_dir):
+            raise RuntimeError(f"Images directory not found: {img_dir}")
+
+        full_dict = {}
+        idx = 0
+
+        with open(gt_file, 'r', encoding='utf-8') as f:
+            for line_no, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+
+                # Parse: images/1.jpg\tword
+                if '\t' in line:
+                    img_rel_path, text = line.split('\t', 1)
+                else:
+                    # Try space separation as fallback
+                    parts = line.split(maxsplit=1)
+                    if len(parts) != 2:
+                        print(f"Warning: Skipping malformed line {line_no}: {line}")
+                        continue
+                    img_rel_path, text = parts
+
+                # Remove "images/" prefix if present
+                if img_rel_path.startswith('images/'):
+                    img_name = img_rel_path[len('images/'):]
+                else:
+                    img_name = img_rel_path
+
+                # Check if image exists
+                img_path = os.path.join(img_dir, img_name)
+                if not os.path.exists(img_path):
+                    print(f"Warning: Image not found: {img_path}")
+                    continue
+
+                # Strip diacritics if needed
+                if not SHOW_HARAKAT:
+                    text = strip_harakat(text)
+
+                # Skip if too long
+                if effective_length(text) > self.max_len:
+                    continue
+
+                # For word-level: use "word_writer" as a single style ID
+                # All images share the same style ID, so style references are randomly sampled from all images
+                full_dict[idx] = {
+                    's_id': 'word_writer',  # All words share same "writer" ID for style sampling
+                    'image': img_name,
+                    'label': text
+                }
+                idx += 1
+
+        print(f"Loaded {len(full_dict)} samples from word-level {split} set")
+        return full_dict
+
     def get_style_ref(self, wr_id):
         """
         Match English loader approach: keep natural dimensions, pad to max width
         """
-        if self.dataset_format == 'upti':
+        if self.dataset_format == 'word':
+            # For word-level: randomly sample 2 style images from all training images
+            # All images in style_root are potential style references
+            style_files = [f for f in os.listdir(self.style_root) if f.endswith(('.jpg', '.png', '.jpeg'))]
+
+            if len(style_files) < 1:
+                raise RuntimeError(f"No style images found in {self.style_root}")
+
+            # Sample 2 random images (or repeat if only 1 available)
+            if len(style_files) >= 2:
+                pick = random.sample(style_files, 2)
+            else:
+                pick = [style_files[0], style_files[0]]
+
+            # Read style images
+            style_images = [cv2.imread(os.path.join(self.style_root, fn), 0) for fn in pick]
+
+            # Read or generate Laplace images
+            laplace_images = []
+            for fn in pick:
+                laplace_path = os.path.join(self.laplace_root, fn)
+                if os.path.exists(laplace_path):
+                    laplace_img = cv2.imread(laplace_path, 0)
+                else:
+                    # Generate Laplace if not pre-computed
+                    style_img = cv2.imread(os.path.join(self.style_root, fn), 0)
+                    laplace_img = cv2.Laplacian(style_img, cv2.CV_64F)
+                    laplace_img = np.abs(laplace_img)
+                    laplace_img = np.clip(laplace_img, 0, 255).astype(np.uint8)
+                laplace_images.append(laplace_img)
+
+        elif self.dataset_format == 'upti':
             # For UPTI: wr_id is the font name, pick random samples from data_dict with same font
             candidates = [sample['image'] for sample in self.data_dict.values() if sample['s_id'] == wr_id]
 
@@ -517,6 +625,8 @@ class IAMDataset(Dataset):
         # Handle image path based on dataset format
         if self.dataset_format == 'upti':
             img_path = sample['image']  # Already full path for UPTI
+        elif self.dataset_format == 'word':
+            img_path = os.path.join(self.image_path, sample['image'])
         else:
             img_path = os.path.join(self.image_path, sample['image'])
 

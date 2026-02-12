@@ -1,0 +1,43 @@
+MODEL:
+  STYLE_ENCODER_LAYERS: 3
+  NUM_IMGS: 12
+  IN_CHANNELS: 4
+  OUT_CHANNELS: 4
+  NUM_RES_BLOCKS: 1  # Official One-DM architecture
+  NUM_HEADS: 4       # Official One-DM architecture
+  EMB_DIM: 512       # Official One-DM architecture
+
+SOLVER:
+  BASE_LR: 0.0001
+  EPOCHS: 1000       # Official One-DM training epochs
+  WARMUP_ITERS: 25000
+  TYPE: AdamW
+  GRAD_L2_CLIP: 5.0
+
+TRAIN:
+  TYPE: train
+  IMS_PER_BATCH: 16  # Increased batch size for word-level (smaller images)
+  SNAPSHOT_BEGIN: 1
+  SNAPSHOT_ITERS: 20  # Save checkpoint every 20 epochs
+  VALIDATE_BEGIN: 0
+  VALIDATE_ITERS: 1   # Validate every epoch
+  SEED: 1001
+  IMG_H: 64
+  IMG_W: 256          # Word-level width (smaller than sentence-level 1024)
+
+TEST:
+  TYPE: val
+  IMS_PER_BATCH: 8
+  IMG_H: 64
+  IMG_W: 256
+
+DATA_LOADER:
+  NUM_THREADS: 8
+  # Word-level dataset format
+  DATASET_FORMAT: word
+  # Paths to processed word-level dataset
+  IAMGE_PATH: /storage/1/saima/oneDM/word_processed
+  STYLE_PATH: /storage/1/saima/oneDM/word_processed
+  LAPLACE_PATH: /storage/1/saima/oneDM/word_processed
+
+OUTPUT_DIR: /storage/1/saima/oneDM/output_word_urdu
