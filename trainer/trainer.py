@@ -338,11 +338,11 @@ class Trainer:
             torch.save(self.model.module.state_dict(), best_path)
             print(f"  ✓ Best model saved! (epoch {epoch+1}, loss: {avg_loss:.4f})")
 
-        # Auto-delete old checkpoints to save space (keep only last 3)
+        # Auto-delete old checkpoints to save space (keep only last 1)
         all_checkpoints = sorted([f for f in os.listdir(self.save_model_dir) if f.endswith('-ckpt.pt')])
-        if len(all_checkpoints) > 3:
-            # Delete oldest checkpoints, keep only last 3
-            for old_ckpt in all_checkpoints[:-3]:
+        if len(all_checkpoints) > 1:
+            # Delete oldest checkpoints, keep only last 1
+            for old_ckpt in all_checkpoints[:-1]:
                 old_path = os.path.join(self.save_model_dir, old_ckpt)
                 try:
                     os.remove(old_path)
