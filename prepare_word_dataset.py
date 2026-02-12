@@ -45,7 +45,7 @@ def resize_and_pad(image, target_h=IMG_HEIGHT, target_w=IMG_WIDTH):
         # Pad if too narrow (pad on right side)
         pad_w = target_w - new_w
         image = cv2.copyMakeBorder(image, 0, 0, 0, pad_w,
-                                   cv2.BORDER_CONSTANT, value=255)
+                                   cv2.BORDER_CONSTANT, value=(255, 255, 255))
 
     return image
 
