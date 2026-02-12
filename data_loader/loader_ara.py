@@ -302,9 +302,14 @@ class IAMDataset(Dataset):
                                    ).to(torch.float32).view(1, 1, 3, 3).contiguous()
 
         # Build / fetch global writer-ID lookup
-        _build_writer_lookup()
-        self.wid2idx = _GLOBAL_WID2IDX
-        self.idx2wid = _GLOBAL_IDX2WID
+        if dataset_format == 'word':
+            # For word-level: use simple mapping with 'word_writer' as ID 0
+            self.wid2idx = {'word_writer': 0}
+            self.idx2wid = {0: 'word_writer'}
+        else:
+            _build_writer_lookup()
+            self.wid2idx = _GLOBAL_WID2IDX
+            self.idx2wid = _GLOBAL_IDX2WID
 
     def load_data(self, data_path):
         """
