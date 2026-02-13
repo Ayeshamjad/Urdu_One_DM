@@ -90,9 +90,19 @@ def main(opt):
                      context_dim=cfg.MODEL.EMB_DIM).to(device)
     
     """load pretrained one_dm model"""
+    start_epoch = 0
     if len(opt.one_dm) > 0:
-        unet.load_state_dict(torch.load(opt.one_dm, map_location=torch.device('cpu')))
-        print('load pretrained one_dm model from {}'.format(opt.one_dm))
+        checkpoint = torch.load(opt.one_dm, map_location=torch.device('cpu'))
+        # Handle both old format (state_dict only) and new format (dict with 'model' key)
+        if isinstance(checkpoint, dict) and 'model' in checkpoint:
+            unet.load_state_dict(checkpoint['model'])
+            start_epoch = checkpoint.get('epoch', 0) + 1  # Resume from next epoch
+            print('load pretrained one_dm model from {} (epoch {})'.format(opt.one_dm, checkpoint.get('epoch', 0)))
+        else:
+            # Old format: checkpoint is the state_dict directly
+            unet.load_state_dict(checkpoint)
+            print('load pretrained one_dm model from {} (old format, epoch unknown)'.format(opt.one_dm))
+            start_epoch = 0
 
     """load pretrained resnet18 model"""
     if len(opt.feat_model) > 0:
@@ -137,7 +147,7 @@ def main(opt):
     vae = vae.to(device)
 
     """build trainer"""
-    trainer = Trainer(diffusion, unet, vae, criterion, optimizer, train_loader, logs, val_loader, device)
+    trainer = Trainer(diffusion, unet, vae, criterion, optimizer, train_loader, logs, val_loader, device, start_epoch=start_epoch)
     trainer.train()
  
 if __name__ == '__main__':

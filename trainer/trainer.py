@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 class Trainer:
     def __init__(self, diffusion, unet, vae, criterion, optimizer, data_loader,
-                 logs, valid_data_loader=None, device=None, ocr_model=None, ctc_loss=None):
+                 logs, valid_data_loader=None, device=None, ocr_model=None, ctc_loss=None, start_epoch=0):
         self.model = unet
         self.diffusion = diffusion
         self.vae = vae
@@ -28,6 +28,7 @@ class Trainer:
         self.ocr_model = ocr_model
         self.ctc_criterion = ctc_loss
         self.device = device
+        self.start_epoch = start_epoch
 
         # Track best model based on validation loss
         self.best_loss = float('inf')
@@ -246,7 +247,7 @@ class Trainer:
     def train(self):
         """start training iterations"""
         start_time = time.time()
-        for epoch in range(cfg.SOLVER.EPOCHS):
+        for epoch in range(self.start_epoch, cfg.SOLVER.EPOCHS):
             epoch_start_time = time.time()
             self.data_loader.sampler.set_epoch(epoch)
 
@@ -327,7 +328,13 @@ class Trainer:
 
     def _save_checkpoint(self, epoch, avg_loss=None):
         checkpoint_path = os.path.join(self.save_model_dir, str(epoch)+'-'+"ckpt.pt")
-        torch.save(self.model.module.state_dict(), checkpoint_path)
+        checkpoint_data = {
+            'model': self.model.module.state_dict(),
+            'epoch': epoch,
+            'optimizer': self.optimizer.state_dict(),
+            'loss': avg_loss
+        }
+        torch.save(checkpoint_data, checkpoint_path)
         print(f"  ✓ Checkpoint saved: {os.path.basename(checkpoint_path)}")
 
         # Save best model if this is the best epoch so far
@@ -335,7 +342,13 @@ class Trainer:
             self.best_loss = avg_loss
             self.best_epoch = epoch
             best_path = os.path.join(self.save_model_dir, "best_model.pt")
-            torch.save(self.model.module.state_dict(), best_path)
+            best_checkpoint_data = {
+                'model': self.model.module.state_dict(),
+                'epoch': epoch,
+                'optimizer': self.optimizer.state_dict(),
+                'loss': avg_loss
+            }
+            torch.save(best_checkpoint_data, best_path)
             print(f"  ✓ Best model saved! (epoch {epoch+1}, loss: {avg_loss:.4f})")
 
         # Auto-delete old checkpoints to save space (keep only last 1)
