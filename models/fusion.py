@@ -58,6 +58,8 @@ class Mix_TR(nn.Module):
 
         ### content encoder
         self.content_encoder = nn.Sequential(*([nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)] +list(models.resnet18(weights='ResNet18_Weights.DEFAULT').children())[1:-2]))
+        # Project from ResNet output (512) to d_model
+        self.content_proj = nn.Linear(512, d_model)
 
     def _reset_parameters(self):
         for p in self.parameters():
@@ -135,6 +137,8 @@ class Mix_TR(nn.Module):
             content = rearrange(content, 'n t h w ->(n t) 1 h w').contiguous()
         content = self.content_encoder(content)
         content = rearrange(content, '(n t) c h w ->t n (c h w)', n=style.shape[0]).contiguous() # n is batch size
+        # Project from ResNet output dimension to d_model
+        content = self.content_proj(content)
         #content = content.permute(1, 0, 2).contiguous() # t n c
         content = self.add_position1D(content)
         
