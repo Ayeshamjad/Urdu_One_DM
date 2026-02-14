@@ -90,7 +90,7 @@ class Trainer:
             self._progress(recon_loss.item(), pbar)
 
         del data, loss
-        torch.cuda.empty_cache()
+        # Removed torch.cuda.empty_cache() - unnecessary overhead, only clear on actual OOM
 
         return loss_values
 
@@ -152,7 +152,7 @@ class Trainer:
             self._progress(recon_loss.item(), pbar)
 
         del data, loss
-        torch.cuda.empty_cache()
+        # Removed torch.cuda.empty_cache() - only clear on actual OOM
 
     def _save_images(self, images, path, writer_ids=None):
         # Create grid of images
@@ -204,15 +204,11 @@ class Trainer:
         writer_ids = test_data.get('wid_str', None) or [str(w.item()) for w in test_data['wid']]
 
         load_content = ContentData()
-        # Define a fixed set of Urdu words for validation (from dataset vocabulary)
+        # Define a fixed set of 3 Urdu words for validation (reduced for faster validation)
         texts = [
             'جمہویریہ',    # Republic
             'تابوت',       # Coffin
-            'بحری',        # Naval
-            'سیارچہ',      # Asteroid
-            'نگہداشت',     # Care
-            'اشعار',       # Poems
-            'تحصیل'        # District
+            'بحری'         # Naval
         ]
         if dist.get_rank() == 0:
             print(f'  Generating images for {len(texts)} texts')
@@ -233,9 +229,15 @@ class Trainer:
 
             x = torch.randn((1, 4, single_style.shape[2]//8, latent_width)).to(self.device)
             preds = self.diffusion.ddim_sample(self.model, self.vae, 1, x, single_style, single_laplace, text_ref)
-            # Save single image (no grid needed)
-            # Use index instead of text in filename to avoid Urdu encoding issues
-            out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_val{idx+1}.png")
+            # Save single image with actual word in filename
+            # Use transliteration for filesystem compatibility
+            word_map = {
+                'جمہویریہ': 'jumhooriya',
+                'تابوت': 'tabut',
+                'بحری': 'bahri'
+            }
+            word_name = word_map.get(text, f'word{idx+1}')
+            out_path = os.path.join(self.save_sample_dir, f"epoch{epoch+1}_{word_name}.png")
             self._save_images(preds, out_path, writer_ids=None)
 
             if dist.get_rank() == 0:
