@@ -170,6 +170,8 @@ class Mix_TR(nn.Module):
             content = rearrange(content, 'n t h w ->(n t) 1 h w').contiguous()
         content = self.content_encoder(content)
         content = rearrange(content, '(n t) c h w ->t n (c h w)', n=style.shape[0]).contiguous() # n is batch size
+        # Project from ResNet output dimension (512) to d_model (256)
+        content = self.content_proj(content)
         content = self.add_position1D(content)
         # fusion of content and style features
         style_hs = self.decoder(content, anchor_low_feature, tgt_mask=None)

@@ -5,7 +5,8 @@ MODEL:
   OUT_CHANNELS: 4
   NUM_RES_BLOCKS: 1  # Official One-DM architecture
   NUM_HEADS: 4       # Official One-DM architecture
-  EMB_DIM: 256       # Optimized for word-level with 70K dataset (4x faster training)
+  EMB_DIM: 256       # Reduced from official 512 for computational efficiency
+                     # Note: channel_mult=(1,1) and context_dim=EMB_DIM follow official implementation
 
 SOLVER:
   BASE_LR: 0.0001

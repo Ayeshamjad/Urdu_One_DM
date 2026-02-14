@@ -170,29 +170,35 @@ texts = [
 
 ## 🏗️ Architecture Verification
 
-### ✅ Matches Official One-DM
+### ✅ Matches Official One-DM (Except EMB_DIM)
 The following parameters match the official One-DM implementation:
 
-| Parameter | Value | Source |
-|-----------|-------|--------|
-| `EMB_DIM` | 512 | configs/UPTI_Word64.yml |
-| `NUM_HEADS` | 4 | configs/UPTI_Word64.yml |
-| `NUM_RES_BLOCKS` | 1 | configs/UPTI_Word64.yml |
-| `IN_CHANNELS` | 4 | configs/UPTI_Word64.yml |
-| `OUT_CHANNELS` | 4 | configs/UPTI_Word64.yml |
-| `STYLE_ENCODER_LAYERS` | 3 | configs/UPTI_Word64.yml |
+| Parameter | Official | Ours | Status |
+|-----------|----------|------|--------|
+| `NUM_HEADS` | 4 | 4 | ✅ Match |
+| `NUM_RES_BLOCKS` | 1 | 1 | ✅ Match |
+| `IN_CHANNELS` | 4 | 4 | ✅ Match |
+| `OUT_CHANNELS` | 4 | 4 | ✅ Match |
+| `STYLE_ENCODER_LAYERS` | 3 | 3 | ✅ Match |
+| `channel_mult` | (1,1) | (1,1) | ✅ Match |
+| `attention_resolutions` | (1,1) | (1,1) | ✅ Match |
+| `EMB_DIM` | 512 | **256** | ⚠️ Reduced for efficiency |
+| `context_dim` | EMB_DIM (=512) | EMB_DIM (=**256**) | ⚠️ Follows EMB_DIM |
+
+**Note**: Official One-DM uses simplified architecture with `channel_mult=(1,1)`
+rather than default UNet `(1,2,4,8)`. We follow the same official implementation.
 
 Defined in `train.py` line 87-90:
 ```python
 unet = UNetModel(
     in_channels=cfg.MODEL.IN_CHANNELS,
-    model_channels=cfg.MODEL.EMB_DIM,  # 512
+    model_channels=cfg.MODEL.EMB_DIM,  # 256 (vs 512 in official)
     out_channels=cfg.MODEL.OUT_CHANNELS,
     num_res_blocks=cfg.MODEL.NUM_RES_BLOCKS,  # 1
-    attention_resolutions=(1,1),
-    channel_mult=(1, 1),
+    attention_resolutions=(1,1),  # Official One-DM
+    channel_mult=(1, 1),  # Official One-DM (not default UNet)
     num_heads=cfg.MODEL.NUM_HEADS,  # 4
-    context_dim=cfg.MODEL.EMB_DIM  # 512
+    context_dim=cfg.MODEL.EMB_DIM  # 256 (vs 512 in official)
 )
 ```
 
