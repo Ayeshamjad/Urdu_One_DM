@@ -47,10 +47,14 @@ class Mix_TR(nn.Module):
         ### low frequency style encoder
         self.Feat_Encoder = self.initialize_resnet18()
         self.style_dilation_layer = resnet18_dilation().conv5_x
-        
+        # Project from ResNet conv5_x output (512) to d_model
+        self.style_proj = nn.Conv2d(512, d_model, kernel_size=1)
+
         ### hig frequency style encoder
         self.freq_encoder = self.initialize_resnet18()
         self.freq_dilation_layer = resnet18_dilation().conv5_x
+        # Project from ResNet conv5_x output (512) to d_model
+        self.freq_proj = nn.Conv2d(512, d_model, kernel_size=1)
 
         ### content encoder
         self.content_encoder = nn.Sequential(*([nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)] +list(models.resnet18(weights='ResNet18_Weights.DEFAULT').children())[1:-2]))
@@ -68,10 +72,12 @@ class Mix_TR(nn.Module):
         resnet.avgpool = nn.Identity()
         return resnet
 
-    def process_style_feature(self, encoder, dilation_layer, style, add_position2D, style_encoder):
+    def process_style_feature(self, encoder, dilation_layer, style, add_position2D, style_encoder, proj_layer=None):
         style = encoder(style)
         style = rearrange(style, 'n (c h w) ->n c h w', c=256, h=4).contiguous()
-        style = dilation_layer(style)
+        style = dilation_layer(style)  # Output: 512 channels
+        if proj_layer is not None:
+            style = proj_layer(style)  # Project 512 -> d_model
         style = add_position2D(style)
         style = rearrange(style, 'n c h w ->(h w) n c').contiguous()
         style = style_encoder(style)
@@ -79,10 +85,10 @@ class Mix_TR(nn.Module):
 
     
     def get_low_style_feature(self, style):
-        return self.process_style_feature(self.Feat_Encoder, self.style_dilation_layer, style, self.add_position2D, self.style_encoder)
+        return self.process_style_feature(self.Feat_Encoder, self.style_dilation_layer, style, self.add_position2D, self.style_encoder, self.style_proj)
 
     def get_high_style_feature(self, laplace):
-        return self.process_style_feature(self.freq_encoder, self.freq_dilation_layer, laplace, self.add_position2D, self.fre_encoder)
+        return self.process_style_feature(self.freq_encoder, self.freq_dilation_layer, laplace, self.add_position2D, self.fre_encoder, self.freq_proj)
 
     
     def forward(self, style, laplace, content):
