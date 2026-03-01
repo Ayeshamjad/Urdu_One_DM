@@ -122,4 +122,4 @@ If you find our work inspiring or use our codebase in your research, please cite
 ```
 
 ## ⭐ StarGraph
-[![Star History Chart](https://api.star-history.com/svg?repos=dailenson/One-DM&type=Timeline)](https://star-history.com/#dailenson/One-DM&Timeline)
+[![Star History Chart](https://api.star-history.com/svg?repos=dailenson/One-DM&type=Timeline)](https://star-history.com/#dailenson/One-DM&Timeline).
